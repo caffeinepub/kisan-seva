@@ -1,11 +1,17 @@
 import { Toaster } from "@/components/ui/sonner";
 import { ArrowDownCircle, BookOpen, FileText } from "lucide-react";
 import { createContext, useContext, useEffect, useState } from "react";
-import { UserRole, type backendInterface } from "./backend";
+import {
+  type Booking,
+  BookingStatus,
+  PaymentMethod,
+  UserRole,
+  type backendInterface,
+} from "./backend";
 import Sidebar from "./components/Sidebar";
-import { useActor } from "./hooks/useActor";
 import { type LocalUser, useLocalAuth } from "./hooks/useLocalAuth";
 import { type Lang, getT } from "./i18n";
+import { createLocalActor } from "./lib/localActor";
 import AllTransactionsPage from "./pages/AllTransactionsPage";
 import BalanceSheetPage from "./pages/BalanceSheetPage";
 import BookingsPage from "./pages/BookingsPage";
@@ -67,65 +73,6 @@ type BookingPrefill = {
   bookingRef?: string;
 } | null;
 
-function createMockActor(): backendInterface {
-  const voidFn = () => Promise.resolve();
-  const emptyArr = () => Promise.resolve([]);
-  const zeroBig = () => Promise.resolve(BigInt(0));
-  const nullFn = () => Promise.resolve(null);
-  const falseFn = () => Promise.resolve(false);
-  return {
-    _initializeAccessControlWithSecret: voidFn,
-    assignCallerUserRole: voidFn,
-    assignDriverToTractor: voidFn,
-    createBooking: zeroBig,
-    createDriver: zeroBig,
-    createExpense: zeroBig,
-    createParty: zeroBig,
-    createPayment: zeroBig,
-    createTractor: zeroBig,
-    deleteBooking: voidFn,
-    deleteDriver: voidFn,
-    deleteExpense: voidFn,
-    deleteParty: voidFn,
-    deletePayment: voidFn,
-    deleteTractor: voidFn,
-    getAllBookings: emptyArr,
-    getAllDrivers: emptyArr,
-    getAllExpenses: emptyArr,
-    getAllParties: emptyArr,
-    getAllPayments: emptyArr,
-    getAllTractors: emptyArr,
-    getBooking: nullFn,
-    getBookingsByDateRange: emptyArr,
-    getBookingsByParty: emptyArr,
-    getBookingsByTractor: emptyArr,
-    getCallerUserProfile: nullFn,
-    getCallerUserRole: () => Promise.resolve(UserRole.guest),
-    getDriver: nullFn,
-    getEarningsThisMonth: zeroBig,
-    getEarningsToday: zeroBig,
-    getExpense: nullFn,
-    getExpensesByDriver: zeroBig,
-    getExpensesByTractor: zeroBig,
-    getNetProfit: zeroBig,
-    getPartiesWithPendingCredit: emptyArr,
-    getParty: nullFn,
-    getPayment: nullFn,
-    getTotalEarnings: zeroBig,
-    getTractor: nullFn,
-    getUserProfile: nullFn,
-    isCallerAdmin: falseFn,
-    saveCallerUserProfile: voidFn,
-    updateBooking: voidFn,
-    updateDriver: voidFn,
-    updateExpense: voidFn,
-    updateParty: voidFn,
-    updatePayment: voidFn,
-    updateTractor: voidFn,
-    updateTractorStatus: voidFn,
-  };
-}
-
 export default function App() {
   const {
     isLoggedIn,
@@ -138,7 +85,7 @@ export default function App() {
     changePassword,
     getSecurityQuestion,
   } = useLocalAuth();
-  const { actor: realActor } = useActor();
+  const localActor = createLocalActor();
   const [lang, setLangState] = useState<Lang>(() => {
     return (localStorage.getItem("ktp_lang") as Lang) || "en";
   });
@@ -220,20 +167,38 @@ export default function App() {
     );
   }
 
-  const actor: backendInterface = isGuest
-    ? createMockActor()
-    : (realActor as backendInterface);
+  const actor: backendInterface = localActor;
 
-  const handleCompleteBooking = (b: {
-    partyId: bigint;
-    workType: string;
-    id: bigint;
-  }) => {
+  const handleCompleteBooking = async (b: Booking) => {
+    // Mark booking as completed first
+    try {
+      await actor.updateBooking(
+        b.id,
+        b.tractorId,
+        b.driverId,
+        b.partyId,
+        b.workType,
+        b.date,
+        b.hours,
+        b.ratePerHour,
+        b.advancePaid,
+        b.paymentMethod,
+        BookingStatus.completed,
+        b.notes,
+      );
+    } catch (_e) {
+      // proceed with navigation even if update fails
+    }
+    // Build BKG reference from stored number
+    const storedNum = localStorage.getItem(`ktp_bkg_num_${b.id.toString()}`);
+    const bkgRef = storedNum
+      ? `#BKG-${storedNum.padStart(4, "0")}`
+      : `#BKG-${b.id.toString().padStart(4, "0")}`;
     setBookingPrefill({
       partyId: b.partyId.toString(),
       partyName: b.partyId.toString(),
       serviceType: b.workType,
-      bookingRef: `BKG-${b.id.toString().padStart(4, "0")}`,
+      bookingRef: bkgRef,
     });
     navigateTo("transactions");
   };

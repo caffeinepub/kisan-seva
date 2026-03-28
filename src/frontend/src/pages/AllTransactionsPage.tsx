@@ -1,13 +1,31 @@
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Menu, ReceiptText } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ArrowLeft, Menu, ReceiptText, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { useApp } from "../App";
 import type { backendInterface } from "../backend";
-import { type Party, type Payment, PaymentMethod } from "../backend";
+import { type Payment, PaymentMethod } from "../backend";
 
 interface Props {
   actor: backendInterface;
   onOpenSidebar?: () => void;
+}
+
+interface SavedTransaction {
+  id: string;
+  partyName?: string;
+  partyId?: string;
+  bookingRef?: string;
+  bookingId?: string;
+  [key: string]: unknown;
 }
 
 function fmt12(dateMs: bigint) {
@@ -47,28 +65,116 @@ function methodColor(m: PaymentMethod): string {
   }
 }
 
+function getSavedTransactions(): SavedTransaction[] {
+  try {
+    const raw = localStorage.getItem("ktp_saved_transactions");
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function setSavedTransactions(items: SavedTransaction[]) {
+  localStorage.setItem("ktp_saved_transactions", JSON.stringify(items));
+}
+
+function getTxnKey(id: bigint): string {
+  return `#TXN-${id.toString().padStart(4, "0")}`;
+}
+
 export default function AllTransactionsPage({ actor, onOpenSidebar }: Props) {
   const { t, goBack } = useApp();
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [savedTxns, setSavedTxns] = useState<SavedTransaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState<Payment | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    Promise.all([actor.getAllPayments(), actor.getAllParties()])
-      .then(([pays, _parts]) => {
-        if (cancelled) return;
+  const loadData = () => {
+    setLoading(true);
+    actor
+      .getAllPayments()
+      .then((pays) => {
         const sorted = [...pays].sort(
           (a, b) => Number(b.date) - Number(a.date),
         );
         setPayments(sorted);
+        setSavedTxns(getSavedTransactions());
       })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+      .finally(() => setLoading(false));
+  };
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: actor is stable
+  useEffect(() => {
+    loadData();
   }, [actor]);
+
+  const getPartyName = (payment: Payment): string => {
+    const key = getTxnKey(payment.id);
+    const saved = savedTxns.find((s) => s.id === key);
+    return saved?.partyName || "";
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const key = getTxnKey(deleteTarget.id);
+      const all = getSavedTransactions();
+      const txnEntry = all.find((s) => s.id === key);
+
+      // Cascade: delete connected booking from localStorage
+      if (txnEntry) {
+        const bookingRef =
+          txnEntry.bookingRef ||
+          txnEntry.bookingId ||
+          key.replace("TXN", "BKG");
+        const afterRemoveTxn = all.filter(
+          (s) => s.id !== key && s.id !== bookingRef,
+        );
+        setSavedTransactions(afterRemoveTxn);
+
+        // Also try to delete booking from backend
+        const bkgNumMatch = bookingRef?.match(/#BKG-(\d+)/);
+        if (bkgNumMatch) {
+          try {
+            for (let i = 0; i < localStorage.length; i++) {
+              const lsKey = localStorage.key(i);
+              if (
+                lsKey?.startsWith("ktp_bkg_num_") &&
+                localStorage.getItem(lsKey) === bkgNumMatch[1]
+              ) {
+                const bkgId = BigInt(lsKey.replace("ktp_bkg_num_", ""));
+                await (actor as any).deleteBooking(bkgId).catch(() => {});
+                localStorage.removeItem(lsKey);
+                break;
+              }
+            }
+          } catch {
+            // ignore
+          }
+        }
+      } else {
+        const afterRemove = all.filter((s) => s.id !== key);
+        setSavedTransactions(afterRemove);
+      }
+
+      // Try to delete from backend
+      try {
+        await (actor as any).deletePayment(deleteTarget.id);
+      } catch {
+        // Backend may not support delete — ignore
+      }
+
+      toast.success(t.deletedMsg || "Deleted successfully");
+      setDeleteTarget(null);
+      loadData();
+    } catch (e) {
+      console.error(e);
+      toast.error(t.errorSavingMsg || "Delete failed");
+    }
+    setDeleting(false);
+  };
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-800">
@@ -125,42 +231,93 @@ export default function AllTransactionsPage({ actor, onOpenSidebar }: Props) {
         )}
 
         {!loading &&
-          payments.map((payment, idx) => (
-            <div
-              key={payment.id.toString()}
-              className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-3"
-              data-ocid={`all_transactions.item.${idx + 1}`}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-bold text-green-700 bg-green-50 dark:bg-green-900/30 px-2 py-0.5 rounded-full">
-                      #TXN-{payment.id.toString().padStart(4, "0")}
-                    </span>
-                    <span
-                      className={`text-xs font-semibold px-2 py-0.5 rounded-full ${methodColor(payment.method)}`}
-                    >
-                      {methodLabel(payment.method)}
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
-                    {fmt12(payment.date)}
-                  </p>
-                  {payment.notes ? (
-                    <p className="text-sm text-gray-700 dark:text-gray-300 mt-1 line-clamp-2">
-                      {payment.notes}
+          payments.map((payment, idx) => {
+            const partyName = getPartyName(payment);
+            return (
+              <div
+                key={payment.id.toString()}
+                className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-3"
+                data-ocid={`all_transactions.item.${idx + 1}`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-bold text-green-700 bg-green-50 dark:bg-green-900/30 px-2 py-0.5 rounded-full">
+                        #TXN-{payment.id.toString().padStart(4, "0")}
+                      </span>
+                      <span
+                        className={`text-xs font-semibold px-2 py-0.5 rounded-full ${methodColor(payment.method)}`}
+                      >
+                        {methodLabel(payment.method)}
+                      </span>
+                    </div>
+                    {partyName ? (
+                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-0.5">
+                        {partyName}
+                      </p>
+                    ) : null}
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {fmt12(payment.date)}
                     </p>
-                  ) : null}
-                </div>
-                <div className="text-right shrink-0">
-                  <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                    ₹{payment.amount.toString()}
-                  </span>
+                    {payment.notes ? (
+                      <p className="text-sm text-gray-700 dark:text-gray-300 mt-1 line-clamp-2">
+                        {payment.notes}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="flex flex-col items-end gap-2 shrink-0">
+                    <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                      ₹{payment.amount.toString()}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteTarget(payment)}
+                      className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-colors"
+                      data-ocid={`all_transactions.delete_button.${idx + 1}`}
+                      title={t.delete || "Delete"}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
       </main>
+
+      {/* Delete Confirm Dialog */}
+      <Dialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <DialogContent data-ocid="all_transactions.dialog">
+          <DialogHeader>
+            <DialogTitle>{t.delete || "Delete Transaction"}</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this transaction? If it is linked
+              to a booking, the booking will also be deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteTarget(null)}
+              disabled={deleting}
+              data-ocid="all_transactions.cancel_button"
+            >
+              {t.cancel || "Cancel"}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+              data-ocid="all_transactions.confirm_button"
+            >
+              {deleting ? "Deleting..." : t.delete || "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

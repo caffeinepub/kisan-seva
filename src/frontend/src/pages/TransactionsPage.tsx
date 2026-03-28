@@ -494,6 +494,7 @@ export default function TransactionsPage({
 
   const selectedService = workTypes.find((s) => s.name === workType);
   const serviceRate = selectedService?.rate || 0;
+  const isFixedPrice = !!selectedService && selectedService.rate === 0;
   const selectedTractor = tractors.find((tr) => tr.id.toString() === tractorId);
 
   const resetForm = () => {
@@ -927,6 +928,12 @@ export default function TransactionsPage({
               ✓ ₹{serviceRate}/hr — {t.autoFillHint}
             </p>
           )}
+          {isFixedPrice && (
+            <p className="text-xs text-orange-600 mt-1">
+              ⚠ Fixed price service — Enter amount manually, time fields
+              disabled
+            </p>
+          )}
         </div>
 
         {/* Tractor */}
@@ -989,7 +996,12 @@ export default function TransactionsPage({
                 type="time"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
-                className="bg-white dark:bg-gray-900"
+                disabled={isFixedPrice}
+                className={
+                  isFixedPrice
+                    ? "bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed"
+                    : "bg-white dark:bg-gray-900"
+                }
                 data-ocid="transactions.start_time.input"
               />
             </div>
@@ -1001,7 +1013,12 @@ export default function TransactionsPage({
                 type="time"
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
-                className="bg-white dark:bg-gray-900"
+                disabled={isFixedPrice}
+                className={
+                  isFixedPrice
+                    ? "bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed"
+                    : "bg-white dark:bg-gray-900"
+                }
                 data-ocid="transactions.end_time.input"
               />
             </div>
@@ -1021,9 +1038,16 @@ export default function TransactionsPage({
               <Input
                 type="number"
                 min={0}
-                value={hours}
-                onChange={(e) => setHours(Number(e.target.value))}
-                className="bg-white dark:bg-gray-900"
+                value={isFixedPrice ? 0 : hours}
+                onChange={(e) =>
+                  !isFixedPrice && setHours(Number(e.target.value))
+                }
+                disabled={isFixedPrice}
+                className={
+                  isFixedPrice
+                    ? "bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed"
+                    : "bg-white dark:bg-gray-900"
+                }
                 data-ocid="transactions.hours.input"
               />
             </div>
@@ -1035,9 +1059,16 @@ export default function TransactionsPage({
                 type="number"
                 min={0}
                 max={59}
-                value={minutes}
-                onChange={(e) => setMinutes(Number(e.target.value))}
-                className="bg-white dark:bg-gray-900"
+                value={isFixedPrice ? 0 : minutes}
+                onChange={(e) =>
+                  !isFixedPrice && setMinutes(Number(e.target.value))
+                }
+                disabled={isFixedPrice}
+                className={
+                  isFixedPrice
+                    ? "bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed"
+                    : "bg-white dark:bg-gray-900"
+                }
                 data-ocid="transactions.minutes.input"
               />
             </div>

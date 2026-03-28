@@ -37,6 +37,7 @@ type SimpleForm = {
   partyMobile: string;
   serviceType: string;
   date: string;
+  time: string;
   notes: string;
 };
 
@@ -45,6 +46,7 @@ const emptyForm: SimpleForm = {
   partyMobile: "",
   serviceType: "",
   date: new Date().toISOString().split("T")[0],
+  time: new Date().toTimeString().slice(0, 5),
   notes: "",
 };
 
@@ -118,7 +120,9 @@ export default function BookingsPage({
     try {
       const partyBigInt =
         form.partyId === CASH_PARTY_ID ? BigInt(0) : BigInt(form.partyId);
-      const dateMs = BigInt(new Date(form.date).getTime());
+      // Combine date + time into a single timestamp
+      const dateTimeStr = form.time ? `${form.date}T${form.time}` : form.date;
+      const dateMs = BigInt(new Date(dateTimeStr).getTime());
       if (editId !== null) {
         await actor.updateBooking(
           editId,
@@ -175,11 +179,13 @@ export default function BookingsPage({
 
   const openEdit = (b: Booking) => {
     const party = parties.find((p) => p.id === b.partyId);
+    const dateObj = new Date(Number(b.date));
     setForm({
       partyId: b.partyId.toString(),
       partyMobile: party?.phone || "",
       serviceType: b.workType,
-      date: new Date(Number(b.date)).toISOString().split("T")[0],
+      date: dateObj.toISOString().split("T")[0],
+      time: dateObj.toTimeString().slice(0, 5),
       notes: b.notes,
     });
     setEditId(b.id);
@@ -268,14 +274,30 @@ export default function BookingsPage({
             </Select>
           </div>
 
-          <div>
-            <Label>{t.date}</Label>
-            <Input
-              type="date"
-              value={form.date}
-              onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-              data-ocid="bookings.date.input"
-            />
+          {/* Date + Time side by side */}
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <Label>{t.date}</Label>
+              <Input
+                type="date"
+                value={form.date}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, date: e.target.value }))
+                }
+                data-ocid="bookings.date.input"
+              />
+            </div>
+            <div className="flex-1">
+              <Label>Time</Label>
+              <Input
+                type="time"
+                value={form.time}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, time: e.target.value }))
+                }
+                data-ocid="bookings.time.input"
+              />
+            </div>
           </div>
 
           <div>
@@ -363,11 +385,15 @@ export default function BookingsPage({
                 <div className="font-semibold text-gray-900 dark:text-gray-100">
                   {getPartyName(b.partyId)}
                 </div>
-                <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                <div className="text-sm text-gray-500 dark:text-gray-400">
                   {b.workType}
                 </div>
                 <div className="text-sm text-gray-400 dark:text-gray-500">
-                  {new Date(Number(b.date)).toLocaleDateString()}
+                  {new Date(Number(b.date)).toLocaleDateString()}{" "}
+                  {new Date(Number(b.date)).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                 </div>
               </div>
               <div className="flex flex-col items-end gap-1">
@@ -379,32 +405,42 @@ export default function BookingsPage({
               </div>
             </div>
             <div className="flex gap-2 mt-3">
-              {b.status !== BookingStatus.completed && (
-                <button
-                  type="button"
-                  onClick={() => onCompleteBooking(b)}
-                  className="flex-1 py-1.5 rounded-lg bg-green-600 text-white text-sm font-semibold flex items-center justify-center gap-1"
-                  data-ocid={`bookings.complete.button.${idx + 1}`}
-                >
-                  <CheckCircle className="w-4 h-4" /> {t.completeBookingBtn}
-                </button>
+              {b.status !== BookingStatus.completed ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await onCompleteBooking(b);
+                      await load();
+                    }}
+                    className="flex-1 py-1.5 rounded-lg bg-green-600 text-white text-sm font-semibold flex items-center justify-center gap-1"
+                    data-ocid={`bookings.complete.button.${idx + 1}`}
+                  >
+                    <CheckCircle className="w-4 h-4" /> {t.completeBookingBtn}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openEdit(b)}
+                    className="flex-1 py-1.5 rounded-lg border text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:bg-gray-800"
+                    data-ocid={`bookings.edit.button.${idx + 1}`}
+                  >
+                    {t.edit}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(b.id)}
+                    className="flex-1 py-1.5 rounded-lg border border-red-200 text-sm text-red-500 hover:bg-red-50"
+                    data-ocid={`bookings.delete_button.${idx + 1}`}
+                  >
+                    {t.delete}
+                  </button>
+                </>
+              ) : (
+                <div className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-green-50 text-green-700 text-sm font-semibold">
+                  <CheckCircle className="w-4 h-4" />
+                  <span>{t.completed || "Completed"}</span>
+                </div>
               )}
-              <button
-                type="button"
-                onClick={() => openEdit(b)}
-                className="flex-1 py-1.5 rounded-lg border text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:bg-gray-800"
-                data-ocid={`bookings.edit.button.${idx + 1}`}
-              >
-                {t.edit}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDelete(b.id)}
-                className="flex-1 py-1.5 rounded-lg border border-red-200 text-sm text-red-500 hover:bg-red-50"
-                data-ocid={`bookings.delete_button.${idx + 1}`}
-              >
-                {t.delete}
-              </button>
             </div>
           </div>
         ))}

@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Menu, Plus } from "lucide-react";
+import { ArrowLeft, Menu, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useApp } from "../App";
@@ -47,7 +47,14 @@ function fmt12(dateStr: string, timeStr: string): string {
 function PartyDetailView({
   party,
   onBack,
-}: { party: Party; onBack: () => void }) {
+  onEdit,
+  onDelete,
+}: {
+  party: Party;
+  onBack: () => void;
+  onEdit: (party: Party) => void;
+  onDelete: (partyId: bigint) => void;
+}) {
   const udharMap: Record<string, number> = JSON.parse(
     localStorage.getItem("ktp_party_udhar") || "{}",
   );
@@ -92,6 +99,8 @@ function PartyDetailView({
     }
   };
 
+  const isCash = party.id.toString() === CASH_PARTY_ID;
+
   return (
     <div className="flex flex-col min-h-full bg-gray-50 dark:bg-gray-800">
       {/* Header */}
@@ -113,7 +122,7 @@ function PartyDetailView({
         </div>
       </div>
 
-      <div className="p-4 space-y-3">
+      <div className="p-4 space-y-3 pb-24">
         {/* Party Info */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl border p-4 space-y-2">
           <div className="flex justify-between items-start">
@@ -121,7 +130,7 @@ function PartyDetailView({
               <div className="font-bold text-gray-900 dark:text-gray-100">
                 {party.name}
               </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
+              <div className="text-sm text-gray-500 dark:text-gray-400">
                 {party.phone}
               </div>
               {party.address && (
@@ -132,7 +141,7 @@ function PartyDetailView({
             </div>
             {totalDue > 0 && (
               <div className="text-right">
-                <div className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                <div className="text-xs text-gray-500 dark:text-gray-400">
                   Total Due
                 </div>
                 <div className="text-xl font-bold text-red-600">
@@ -145,7 +154,7 @@ function PartyDetailView({
           {/* Reminder Buttons */}
           {totalDue > 0 && party.phone && (
             <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
-              <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-2">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                 Send Payment Reminder:
               </p>
               <div className="grid grid-cols-2 gap-2">
@@ -187,7 +196,7 @@ function PartyDetailView({
           <div className="bg-white dark:bg-gray-900 rounded-xl border p-3 space-y-3">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">
+                <Label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
                   From Date
                 </Label>
                 <Input
@@ -198,7 +207,7 @@ function PartyDetailView({
                 />
               </div>
               <div>
-                <Label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">
+                <Label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
                   To Date
                 </Label>
                 <Input
@@ -211,7 +220,7 @@ function PartyDetailView({
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">
+                <Label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
                   Min Amount (₹)
                 </Label>
                 <Input
@@ -223,7 +232,7 @@ function PartyDetailView({
                 />
               </div>
               <div>
-                <Label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">
+                <Label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
                   Max Amount (₹)
                 </Label>
                 <Input
@@ -273,11 +282,11 @@ function PartyDetailView({
                         <span className="text-xs font-bold text-green-700 bg-green-50 dark:bg-green-900/30 px-2 py-0.5 rounded-full">
                           {tx.id}
                         </span>
-                        <span className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 dark:text-gray-500 px-2 py-0.5 rounded-full capitalize">
+                        <span className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded-full capitalize">
                           {tx.paymentMethod}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
                         {fmt12(tx.date, tx.time)}
                       </p>
                       <p className="text-sm text-gray-700 dark:text-gray-300 font-medium mt-0.5">
@@ -304,6 +313,33 @@ function PartyDetailView({
           </div>
         )}
       </div>
+
+      {/* Bottom Action Bar — Edit & Delete */}
+      {!isCash && (
+        <div
+          className="flex gap-3 px-4 py-4 border-t bg-white dark:bg-gray-900 sticky bottom-0"
+          data-ocid="parties.detail.panel"
+        >
+          <button
+            type="button"
+            onClick={() => onEdit(party)}
+            className="flex-1 flex items-center justify-center gap-2 py-3 bg-blue-500 text-white rounded-xl text-sm font-semibold"
+            data-ocid="parties.detail.edit_button"
+          >
+            <Pencil className="w-4 h-4" />
+            Edit
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(party.id)}
+            className="flex-1 flex items-center justify-center gap-2 py-3 bg-red-500 text-white rounded-xl text-sm font-semibold"
+            data-ocid="parties.detail.delete_button"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -318,11 +354,22 @@ export default function PartiesPage({ actor, onOpenSidebar }: Props) {
   const [selectedParty, setSelectedParty] = useState<Party | null>(null);
 
   const load = async () => {
-    setParties(await actor.getAllParties());
+    const loaded = await actor.getAllParties();
+    setParties(loaded);
+    return loaded;
   };
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: actor is stable
   useEffect(() => {
-    load();
+    load().then((loaded) => {
+      // Check if dashboard requested to open a specific party
+      const openId = localStorage.getItem("ktp_open_party_id");
+      if (openId) {
+        localStorage.removeItem("ktp_open_party_id");
+        const found = loaded.find((p) => p.id.toString() === openId);
+        if (found) setSelectedParty(found);
+      }
+    });
   }, [actor]);
 
   // Filter out Cash party from display
@@ -362,7 +409,15 @@ export default function PartiesPage({ actor, onOpenSidebar }: Props) {
     if (!confirm("Delete?")) return;
     await actor.deleteParty(id);
     toast.success(t.deletedMsg);
+    setSelectedParty(null);
     await load();
+  };
+
+  const handleEditFromDetail = (party: Party) => {
+    setForm({ name: party.name, phone: party.phone, address: party.address });
+    setEditId(party.id);
+    setSelectedParty(null);
+    setShowForm(true);
   };
 
   if (selectedParty) {
@@ -370,6 +425,8 @@ export default function PartiesPage({ actor, onOpenSidebar }: Props) {
       <PartyDetailView
         party={selectedParty}
         onBack={() => setSelectedParty(null)}
+        onEdit={handleEditFromDetail}
+        onDelete={handleDelete}
       />
     );
   }
@@ -479,67 +536,39 @@ export default function PartiesPage({ actor, onOpenSidebar }: Props) {
           const totalDue =
             Number(p.creditBalance) + (udharMap[p.id.toString()] || 0);
           return (
-            <div
+            <button
               key={p.id.toString()}
-              className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-sm overflow-hidden"
+              type="button"
+              onClick={() => setSelectedParty(p)}
+              className="w-full bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-sm p-4 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              data-ocid={`parties.item.${displayParties.indexOf(p) + 1}`}
             >
-              {/* Clickable card body */}
-              <button
-                type="button"
-                onClick={() => setSelectedParty(p)}
-                className="w-full p-4 text-left"
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="font-semibold text-gray-900 dark:text-gray-100">
-                      {p.name}
-                    </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
-                      {p.phone}
-                    </div>
-                    {p.address && (
-                      <div className="text-xs text-gray-400 dark:text-gray-500">
-                        {p.address}
-                      </div>
-                    )}
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="font-semibold text-gray-900 dark:text-gray-100">
+                    {p.name}
                   </div>
-                  <div className="flex flex-col items-end gap-1">
-                    {totalDue > 0 && (
-                      <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold">
-                        ₹{totalDue} {t.pendingDues}
-                      </span>
-                    )}
-                    <span className="text-xs text-gray-400 dark:text-gray-500">
-                      Tap to view →
-                    </span>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    {p.phone}
                   </div>
+                  {p.address && (
+                    <div className="text-xs text-gray-400 dark:text-gray-500">
+                      {p.address}
+                    </div>
+                  )}
                 </div>
-              </button>
-              <div className="flex gap-2 px-4 pb-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setForm({
-                      name: p.name,
-                      phone: p.phone,
-                      address: p.address,
-                    });
-                    setEditId(p.id);
-                    setShowForm(true);
-                  }}
-                  className="flex-1 py-1.5 rounded-lg border text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500"
-                >
-                  {t.edit}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(p.id)}
-                  className="flex-1 py-1.5 rounded-lg border border-red-200 text-sm text-red-500"
-                >
-                  {t.delete}
-                </button>
+                <div className="flex flex-col items-end gap-1">
+                  {totalDue > 0 && (
+                    <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold">
+                      ₹{totalDue} {t.pendingDues}
+                    </span>
+                  )}
+                  <span className="text-xs text-gray-400 dark:text-gray-500">
+                    Tap to view →
+                  </span>
+                </div>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>

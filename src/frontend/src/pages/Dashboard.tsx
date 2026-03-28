@@ -11,6 +11,21 @@ type Props = {
 
 type ActiveTab = "parties" | "transactions" | "services";
 
+interface SavedTxn {
+  id: string;
+  partyName?: string;
+  [key: string]: unknown;
+}
+
+function getSavedTransactions(): SavedTxn[] {
+  try {
+    const raw = localStorage.getItem("ktp_saved_transactions");
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function Dashboard({ actor, onOpenSidebar }: Props) {
   const { t, setPage } = useApp();
   const [activeTab, setActiveTab] = useState<ActiveTab>("parties");
@@ -26,6 +41,7 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
     [],
   );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: actor is stable
   useEffect(() => {
     const load = async () => {
       try {
@@ -62,6 +78,21 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
       console.error(e);
     }
   }, []);
+
+  // Read directly from localStorage — no effect needed
+  const getPartyNameForPayment = (pay: Payment): string => {
+    const key = `#TXN-${pay.id.toString().padStart(4, "0")}`;
+    return getSavedTransactions().find((s) => s.id === key)?.partyName || "";
+  };
+
+  const handlePartyClick = (p: {
+    id: bigint;
+    name: string;
+    creditBalance: bigint;
+  }) => {
+    localStorage.setItem("ktp_open_party_id", p.id.toString());
+    setPage("parties");
+  };
 
   const stats = [
     {
@@ -128,9 +159,11 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
           ) : (
             <div className="flex flex-col gap-2">
               {pendingParties.map((p, i) => (
-                <div
+                <button
                   key={p.id.toString()}
-                  className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-xl px-4 py-3 border border-gray-100 dark:border-gray-700"
+                  type="button"
+                  onClick={() => handlePartyClick(p)}
+                  className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-xl px-4 py-3 border border-gray-100 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer w-full text-left"
                   data-ocid={`dashboard.parties.item.${i + 1}`}
                 >
                   <div className="flex items-center gap-2">
@@ -144,7 +177,7 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
                   <span className="font-bold text-red-500 text-sm">
                     ₹{p.creditBalance.toString()}
                   </span>
-                </div>
+                </button>
               ))}
             </div>
           )}
@@ -180,6 +213,7 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
                   day: "2-digit",
                   month: "short",
                 });
+                const partyName = getPartyNameForPayment(pay);
                 return (
                   <div
                     key={pay.id.toString()}
@@ -190,6 +224,11 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
                       <span className="text-green-700 font-mono bg-green-50 dark:bg-green-900/30 px-2 py-0.5 rounded-full text-xs w-fit">
                         #TXN-{pay.id.toString().padStart(4, "0")}
                       </span>
+                      {partyName ? (
+                        <span className="text-gray-700 dark:text-gray-300 text-xs font-semibold">
+                          {partyName}
+                        </span>
+                      ) : null}
                       <span className="text-gray-400 dark:text-gray-500 text-xs">
                         {dateStr}
                       </span>
@@ -275,7 +314,7 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
               key={s.label}
               className={`flex-shrink-0 bg-white dark:bg-gray-900 rounded-2xl border ${s.border} p-3 shadow-sm w-36`}
             >
-              <div className="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">
+              <div className="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                 <span className={s.iconColor}>{s.icon}</span>
                 <span>{s.label}</span>
               </div>
@@ -298,7 +337,7 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
               className={`flex-1 text-xs font-semibold py-2 px-1 rounded-lg transition-all ${
                 activeTab === tab.key
                   ? "bg-white dark:bg-gray-900 text-green-700 shadow-sm border-b-2 border-green-500"
-                  : "text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
               }`}
               data-ocid={`dashboard.${tab.key}.tab`}
             >
