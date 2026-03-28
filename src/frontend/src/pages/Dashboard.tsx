@@ -109,7 +109,7 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
       return (
         <div className="px-4 py-3">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1">
               <span>👥</span> {t.parties}
             </h2>
             <button
@@ -122,7 +122,7 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
             </button>
           </div>
           {pendingParties.length === 0 ? (
-            <p className="text-gray-400 text-sm text-center py-8">
+            <p className="text-gray-400 dark:text-gray-500 text-sm text-center py-8">
               {t.noPendingCredit}
             </p>
           ) : (
@@ -130,14 +130,14 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
               {pendingParties.map((p, i) => (
                 <div
                   key={p.id.toString()}
-                  className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3 border border-gray-100"
+                  className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-xl px-4 py-3 border border-gray-100 dark:border-gray-700"
                   data-ocid={`dashboard.parties.item.${i + 1}`}
                 >
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold text-sm">
                       {p.name.charAt(0).toUpperCase()}
                     </div>
-                    <span className="text-gray-800 text-sm font-medium">
+                    <span className="text-gray-800 dark:text-gray-200 text-sm font-medium">
                       {p.name}
                     </span>
                   </div>
@@ -156,7 +156,7 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
       return (
         <div className="px-4 py-3">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1">
               <span>🧾</span> {t.transaction}
             </h2>
             <button
@@ -169,7 +169,7 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
             </button>
           </div>
           {allPayments.length === 0 ? (
-            <p className="text-gray-400 text-sm text-center py-8">
+            <p className="text-gray-400 dark:text-gray-500 text-sm text-center py-8">
               {t.noTransactions}
             </p>
           ) : (
@@ -183,16 +183,18 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
                 return (
                   <div
                     key={pay.id.toString()}
-                    className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3 border border-gray-100"
+                    className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-xl px-4 py-3 border border-gray-100 dark:border-gray-700"
                     data-ocid={`dashboard.transactions.item.${i + 1}`}
                   >
                     <div className="flex flex-col gap-0.5">
-                      <span className="text-green-700 font-mono bg-green-50 px-2 py-0.5 rounded-full text-xs w-fit">
+                      <span className="text-green-700 font-mono bg-green-50 dark:bg-green-900/30 px-2 py-0.5 rounded-full text-xs w-fit">
                         #TXN-{pay.id.toString().padStart(4, "0")}
                       </span>
-                      <span className="text-gray-400 text-xs">{dateStr}</span>
+                      <span className="text-gray-400 dark:text-gray-500 text-xs">
+                        {dateStr}
+                      </span>
                     </div>
-                    <span className="font-bold text-gray-800 text-sm">
+                    <span className="font-bold text-gray-800 dark:text-gray-200 text-sm">
                       ₹{pay.amount.toString()}
                     </span>
                   </div>
@@ -208,7 +210,7 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
       return (
         <div className="px-4 py-3">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1">
               <span>🔧</span> Services
             </h2>
             <button
@@ -221,7 +223,7 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
             </button>
           </div>
           {services.length === 0 ? (
-            <p className="text-gray-400 text-sm text-center py-8">
+            <p className="text-gray-400 dark:text-gray-500 text-sm text-center py-8">
               No services
             </p>
           ) : (
@@ -229,10 +231,10 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
               {services.map((svc, i) => (
                 <div
                   key={svc.name}
-                  className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3 border border-gray-100"
+                  className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-xl px-4 py-3 border border-gray-100 dark:border-gray-700"
                   data-ocid={`dashboard.services.item.${i + 1}`}
                 >
-                  <span className="text-gray-800 text-sm font-medium">
+                  <span className="text-gray-800 dark:text-gray-200 text-sm font-medium">
                     {svc.name}
                   </span>
                   <span className="font-bold text-green-700 text-sm">
@@ -250,15 +252,17 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
   };
 
   return (
-    <div className="flex flex-col min-h-full bg-white pb-4">
+    <div className="flex flex-col min-h-full bg-white dark:bg-gray-900 pb-4">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-30 bg-white flex items-center justify-between px-4 pt-4 pb-2 border-b border-gray-100">
+      <div className="sticky top-0 z-30 bg-white dark:bg-gray-900 flex items-center justify-between px-4 pt-4 pb-2 border-b border-gray-100 dark:border-gray-700">
         <button type="button" onClick={onOpenSidebar} className="p-1">
-          <Menu className="w-6 h-6 text-gray-700" />
+          <Menu className="w-6 h-6 text-gray-700 dark:text-gray-300" />
         </button>
         <div className="flex items-center gap-2">
-          <span className="font-bold text-gray-800 text-base">Kisan Seva</span>
-          <Pencil className="w-4 h-4 text-gray-400" />
+          <span className="font-bold text-gray-800 dark:text-gray-200 text-base">
+            Kisan Seva
+          </span>
+          <Pencil className="w-4 h-4 text-gray-400 dark:text-gray-500" />
         </div>
         <div className="w-8" />
       </div>
@@ -269,9 +273,9 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
           {stats.map((s) => (
             <div
               key={s.label}
-              className={`flex-shrink-0 bg-white rounded-2xl border ${s.border} p-3 shadow-sm w-36`}
+              className={`flex-shrink-0 bg-white dark:bg-gray-900 rounded-2xl border ${s.border} p-3 shadow-sm w-36`}
             >
-              <div className="flex items-center gap-1 text-xs font-medium text-gray-500 mb-1">
+              <div className="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">
                 <span className={s.iconColor}>{s.icon}</span>
                 <span>{s.label}</span>
               </div>
@@ -285,7 +289,7 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
 
       {/* Middle Tab Bar */}
       <div className="px-4 mb-1">
-        <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+        <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
           {tabs.map((tab) => (
             <button
               key={tab.key}
@@ -293,8 +297,8 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
               onClick={() => setActiveTab(tab.key)}
               className={`flex-1 text-xs font-semibold py-2 px-1 rounded-lg transition-all ${
                 activeTab === tab.key
-                  ? "bg-white text-green-700 shadow-sm border-b-2 border-green-500"
-                  : "text-gray-500 hover:text-gray-700"
+                  ? "bg-white dark:bg-gray-900 text-green-700 shadow-sm border-b-2 border-green-500"
+                  : "text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300"
               }`}
               data-ocid={`dashboard.${tab.key}.tab`}
             >

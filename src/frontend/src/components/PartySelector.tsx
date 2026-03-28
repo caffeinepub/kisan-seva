@@ -100,14 +100,14 @@ export default function PartySelector({
           setSearch("");
           setShowCreate(false);
         }}
-        className="flex items-center gap-2 w-full bg-white border rounded-lg px-3 py-2.5 text-left"
+        className="flex items-center gap-2 w-full bg-white dark:bg-gray-900 border rounded-lg px-3 py-2.5 text-left"
       >
         {selectedParty ? (
           <>
-            <span className="flex-1 text-sm text-gray-900">
+            <span className="flex-1 text-sm text-gray-900 dark:text-gray-100">
               {selectedParty.name}
               {selectedParty.phone ? (
-                <span className="text-gray-400 text-xs ml-2">
+                <span className="text-gray-400 dark:text-gray-500 text-xs ml-2">
                   {selectedParty.phone}
                 </span>
               ) : null}
@@ -118,15 +118,15 @@ export default function PartySelector({
                 e.stopPropagation();
                 onChange("", "");
               }}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:text-gray-500"
             >
               <X className="w-4 h-4" />
             </button>
           </>
         ) : (
           <>
-            <Search className="w-4 h-4 text-gray-400" />
-            <span className="flex-1 text-sm text-gray-400">
+            <Search className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+            <span className="flex-1 text-sm text-gray-400 dark:text-gray-500">
               {placeholder || t.selectParty}
             </span>
           </>
@@ -134,7 +134,7 @@ export default function PartySelector({
       </button>
 
       {open && (
-        <div className="absolute z-50 top-full mt-1 w-full bg-white border rounded-xl shadow-xl overflow-hidden">
+        <div className="absolute z-50 top-full mt-1 w-full bg-white dark:bg-gray-900 border rounded-xl shadow-xl overflow-hidden">
           <div className="p-2 border-b">
             <Input
               autoFocus
@@ -174,7 +174,7 @@ export default function PartySelector({
             </button>
 
             {filtered.length === 0 && (
-              <div className="px-3 py-3 text-sm text-gray-400 text-center">
+              <div className="px-3 py-3 text-sm text-gray-400 dark:text-gray-500 text-center">
                 {t.noPartyFound}
               </div>
             )}
@@ -186,14 +186,16 @@ export default function PartySelector({
                   onChange(p.id.toString(), p.name);
                   setOpen(false);
                 }}
-                className="flex items-center gap-2 w-full px-3 py-2.5 hover:bg-green-50 text-left border-b border-gray-50 last:border-0"
+                className="flex items-center gap-2 w-full px-3 py-2.5 hover:bg-green-50 dark:bg-green-900/30 text-left border-b border-gray-50 last:border-0"
               >
                 <div className="flex-1">
-                  <div className="text-sm font-medium text-gray-900">
+                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                     {p.name}
                   </div>
                   {p.phone && (
-                    <div className="text-xs text-gray-500">{p.phone}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                      {p.phone}
+                    </div>
                   )}
                 </div>
                 {p.creditBalance > 0n && (
@@ -209,12 +211,12 @@ export default function PartySelector({
             <button
               type="button"
               onClick={() => setShowCreate(true)}
-              className="flex items-center gap-2 w-full px-3 py-2.5 border-t text-sm text-green-700 font-semibold hover:bg-green-50"
+              className="flex items-center gap-2 w-full px-3 py-2.5 border-t text-sm text-green-700 font-semibold hover:bg-green-50 dark:bg-green-900/30"
             >
               <Plus className="w-4 h-4" /> {t.newPartyCreate}
             </button>
           ) : !isCash && showCreate ? (
-            <div className="p-3 border-t bg-green-50 flex flex-col gap-2">
+            <div className="p-3 border-t bg-green-50 dark:bg-green-900/30 flex flex-col gap-2">
               <p className="text-xs font-bold text-green-800">
                 + {t.newPartyCreate}
               </p>
@@ -222,20 +224,20 @@ export default function PartySelector({
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder={t.namePlaceholder}
-                className="bg-white text-sm"
+                className="bg-white dark:bg-gray-900 text-sm"
               />
               <Input
                 value={newPhone}
                 onChange={(e) => setNewPhone(e.target.value)}
                 placeholder={t.mobilePlaceholder}
                 type="tel"
-                className="bg-white text-sm"
+                className="bg-white dark:bg-gray-900 text-sm"
               />
               <Input
                 value={newAddress}
                 onChange={(e) => setNewAddress(e.target.value)}
                 placeholder={t.addressPlaceholder}
-                className="bg-white text-sm"
+                className="bg-white dark:bg-gray-900 text-sm"
               />
               <div className="flex gap-2">
                 <button
@@ -254,7 +256,7 @@ export default function PartySelector({
                     setNewPhone("");
                     setNewAddress("");
                   }}
-                  className="flex-1 bg-gray-100 text-gray-600 text-xs py-2 rounded-lg"
+                  className="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 dark:text-gray-500 text-xs py-2 rounded-lg"
                 >
                   {t.cancel}
                 </button>

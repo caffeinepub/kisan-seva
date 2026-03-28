@@ -20,6 +20,7 @@ export const PaymentMethod = IDL.Variant({
 });
 export const ExpenseCategory = IDL.Variant({
   'other' : IDL.Null,
+  'driverPayment' : IDL.Null,
   'maintenance' : IDL.Null,
   'diesel' : IDL.Null,
 });
@@ -52,6 +53,7 @@ export const Driver = IDL.Record({
 });
 export const Expense = IDL.Record({
   'id' : IDL.Nat,
+  'driverId' : IDL.Nat,
   'date' : IDL.Int,
   'tractorId' : IDL.Nat,
   'notes' : IDL.Text,
@@ -114,7 +116,7 @@ export const idlService = IDL.Service({
     ),
   'createDriver' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [IDL.Nat], []),
   'createExpense' : IDL.Func(
-      [IDL.Nat, ExpenseCategory, IDL.Nat, IDL.Int, IDL.Text],
+      [IDL.Nat, IDL.Nat, ExpenseCategory, IDL.Nat, IDL.Int, IDL.Text],
       [IDL.Nat],
       [],
     ),
@@ -151,6 +153,7 @@ export const idlService = IDL.Service({
   'getEarningsThisMonth' : IDL.Func([], [IDL.Nat], ['query']),
   'getEarningsToday' : IDL.Func([], [IDL.Nat], ['query']),
   'getExpense' : IDL.Func([IDL.Nat], [IDL.Opt(Expense)], ['query']),
+  'getExpensesByDriver' : IDL.Func([IDL.Nat], [IDL.Nat], ['query']),
   'getExpensesByTractor' : IDL.Func([IDL.Nat], [IDL.Nat], ['query']),
   'getNetProfit' : IDL.Func([IDL.Int, IDL.Int], [IDL.Int], ['query']),
   'getPartiesWithPendingCredit' : IDL.Func([], [IDL.Vec(Party)], ['query']),
@@ -185,7 +188,7 @@ export const idlService = IDL.Service({
     ),
   'updateDriver' : IDL.Func([IDL.Nat, IDL.Text, IDL.Text, IDL.Text], [], []),
   'updateExpense' : IDL.Func(
-      [IDL.Nat, IDL.Nat, ExpenseCategory, IDL.Nat, IDL.Int, IDL.Text],
+      [IDL.Nat, IDL.Nat, IDL.Nat, ExpenseCategory, IDL.Nat, IDL.Int, IDL.Text],
       [],
       [],
     ),
@@ -214,6 +217,7 @@ export const idlFactory = ({ IDL }) => {
   });
   const ExpenseCategory = IDL.Variant({
     'other' : IDL.Null,
+    'driverPayment' : IDL.Null,
     'maintenance' : IDL.Null,
     'diesel' : IDL.Null,
   });
@@ -246,6 +250,7 @@ export const idlFactory = ({ IDL }) => {
   });
   const Expense = IDL.Record({
     'id' : IDL.Nat,
+    'driverId' : IDL.Nat,
     'date' : IDL.Int,
     'tractorId' : IDL.Nat,
     'notes' : IDL.Text,
@@ -305,7 +310,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'createDriver' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [IDL.Nat], []),
     'createExpense' : IDL.Func(
-        [IDL.Nat, ExpenseCategory, IDL.Nat, IDL.Int, IDL.Text],
+        [IDL.Nat, IDL.Nat, ExpenseCategory, IDL.Nat, IDL.Int, IDL.Text],
         [IDL.Nat],
         [],
       ),
@@ -342,6 +347,7 @@ export const idlFactory = ({ IDL }) => {
     'getEarningsThisMonth' : IDL.Func([], [IDL.Nat], ['query']),
     'getEarningsToday' : IDL.Func([], [IDL.Nat], ['query']),
     'getExpense' : IDL.Func([IDL.Nat], [IDL.Opt(Expense)], ['query']),
+    'getExpensesByDriver' : IDL.Func([IDL.Nat], [IDL.Nat], ['query']),
     'getExpensesByTractor' : IDL.Func([IDL.Nat], [IDL.Nat], ['query']),
     'getNetProfit' : IDL.Func([IDL.Int, IDL.Int], [IDL.Int], ['query']),
     'getPartiesWithPendingCredit' : IDL.Func([], [IDL.Vec(Party)], ['query']),
@@ -376,7 +382,15 @@ export const idlFactory = ({ IDL }) => {
       ),
     'updateDriver' : IDL.Func([IDL.Nat, IDL.Text, IDL.Text, IDL.Text], [], []),
     'updateExpense' : IDL.Func(
-        [IDL.Nat, IDL.Nat, ExpenseCategory, IDL.Nat, IDL.Int, IDL.Text],
+        [
+          IDL.Nat,
+          IDL.Nat,
+          IDL.Nat,
+          ExpenseCategory,
+          IDL.Nat,
+          IDL.Int,
+          IDL.Text,
+        ],
         [],
         [],
       ),

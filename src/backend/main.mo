@@ -8,8 +8,11 @@ import List "mo:core/List";
 import Order "mo:core/Order";
 import Runtime "mo:core/Runtime";
 import Principal "mo:core/Principal";
+
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
+
+// Upgrade migration
 
 actor {
   // Authorization
@@ -86,12 +89,14 @@ actor {
   public type ExpenseCategory = {
     #diesel;
     #maintenance;
+    #driverPayment;
     #other;
   };
 
   public type Expense = {
     id : Nat;
     tractorId : Nat;
+    driverId : Nat;
     category : ExpenseCategory;
     amount : Nat;
     date : Int;
@@ -541,6 +546,7 @@ actor {
   // Expense CRUD
   public shared ({ caller }) func createExpense(
     tractorId : Nat,
+    driverId : Nat,
     category : ExpenseCategory,
     amount : Nat,
     date : Int,
@@ -554,6 +560,7 @@ actor {
     let expense : Expense = {
       id;
       tractorId;
+      driverId;
       category;
       amount;
       date;
@@ -582,6 +589,7 @@ actor {
   public shared ({ caller }) func updateExpense(
     id : Nat,
     tractorId : Nat,
+    driverId : Nat,
     category : ExpenseCategory,
     amount : Nat,
     date : Int,
@@ -597,6 +605,7 @@ actor {
         let updated : Expense = {
           id;
           tractorId;
+          driverId;
           category;
           amount;
           date;
@@ -623,6 +632,20 @@ actor {
     var total : Nat = 0;
     for (expense in ownerExpenses.values()) {
       if (expense.tractorId == tractorId) {
+        total += expense.amount;
+      };
+    };
+    total;
+  };
+
+  public query ({ caller }) func getExpensesByDriver(driverId : Nat) : async Nat {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view expenses");
+    };
+    let ownerExpenses = getOrCreateMap(expenses, caller);
+    var total : Nat = 0;
+    for (expense in ownerExpenses.values()) {
+      if (expense.driverId == driverId and expense.category == #driverPayment) {
         total += expense.amount;
       };
     };
@@ -777,3 +800,4 @@ actor {
     Int.fromNat(earnings) - Int.fromNat(expenseTotal);
   };
 };
+

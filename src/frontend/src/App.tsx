@@ -43,10 +43,14 @@ type AppCtx = {
   t: ReturnType<typeof getT>;
   page: Page;
   setPage: (p: Page) => void;
+  navigateTo: (p: Page) => void;
+  goBack: () => void;
   isGuest: boolean;
   logout: () => void;
   actor: backendInterface | null;
   currentUser: LocalUser | null;
+  darkMode: boolean;
+  setDarkMode: (v: boolean) => void;
 };
 
 export const AppContext = createContext<AppCtx>({} as AppCtx);
@@ -97,6 +101,7 @@ function createMockActor(): backendInterface {
     getEarningsThisMonth: zeroBig,
     getEarningsToday: zeroBig,
     getExpense: nullFn,
+    getExpensesByDriver: zeroBig,
     getExpensesByTractor: zeroBig,
     getNetProfit: zeroBig,
     getPartiesWithPendingCredit: emptyArr,
@@ -134,12 +139,36 @@ export default function App() {
     return (localStorage.getItem("ktp_lang") as Lang) || "en";
   });
   const [page, setPage] = useState<Page>("home");
+  const [pageHistory, setPageHistory] = useState<Page[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [bookingPrefill, setBookingPrefill] = useState<BookingPrefill>(null);
+  const [darkMode, setDarkModeState] = useState<boolean>(() => {
+    return localStorage.getItem("ktp_dark") === "true";
+  });
 
   const setLang = (l: Lang) => {
     setLangState(l);
     localStorage.setItem("ktp_lang", l);
+  };
+
+  const setDarkMode = (v: boolean) => {
+    setDarkModeState(v);
+    localStorage.setItem("ktp_dark", String(v));
+  };
+
+  const navigateTo = (p: Page) => {
+    setPageHistory((prev) => [...prev, page]);
+    setPage(p);
+  };
+
+  const goBack = () => {
+    if (pageHistory.length > 0) {
+      const prev = pageHistory[pageHistory.length - 1];
+      setPageHistory((h) => h.slice(0, -1));
+      setPage(prev);
+    } else {
+      setPage("home");
+    }
   };
 
   const t = getT(lang);
@@ -148,21 +177,33 @@ export default function App() {
     document.title = "Kisan Seva";
   }, []);
 
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [darkMode]);
+
+  const contextValue = {
+    lang,
+    setLang,
+    t,
+    page,
+    setPage,
+    navigateTo,
+    goBack,
+    isGuest: false,
+    logout,
+    actor: null,
+    currentUser: null,
+    darkMode,
+    setDarkMode,
+  };
+
   if (!isLoggedIn && !isGuest) {
     return (
-      <AppContext.Provider
-        value={{
-          lang,
-          setLang,
-          t,
-          page,
-          setPage,
-          isGuest: false,
-          logout,
-          actor: null,
-          currentUser: null,
-        }}
-      >
+      <AppContext.Provider value={contextValue}>
         <LoginPage
           onCreateAccount={createAccount}
           onLogin={loginWithMobile}
@@ -190,7 +231,7 @@ export default function App() {
       serviceType: b.workType,
       bookingRef: `BKG-${b.id.toString().padStart(4, "0")}`,
     });
-    setPage("transactions");
+    navigateTo("transactions");
   };
 
   const renderPage = () => {
@@ -295,21 +336,25 @@ export default function App() {
     { key: "bookings" as Page, label: t.bookings, icon: BookOpen },
   ];
 
+  const fullCtx = {
+    lang,
+    setLang,
+    t,
+    page,
+    setPage,
+    navigateTo,
+    goBack,
+    isGuest,
+    logout,
+    actor,
+    currentUser,
+    darkMode,
+    setDarkMode,
+  };
+
   return (
-    <AppContext.Provider
-      value={{
-        lang,
-        setLang,
-        t,
-        page,
-        setPage,
-        isGuest,
-        logout,
-        actor,
-        currentUser,
-      }}
-    >
-      <div className="flex justify-center min-h-screen bg-gray-100">
+    <AppContext.Provider value={fullCtx}>
+      <div className="flex justify-center min-h-screen bg-gray-100 dark:bg-gray-950">
         <div className="relative w-full max-w-[430px] bg-background flex flex-col min-h-screen shadow-xl">
           <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
@@ -336,7 +381,7 @@ export default function App() {
 
           {/* Fixed Bottom Navigation */}
           <div
-            className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] z-30 bg-white border-t border-gray-200 shadow-lg"
+            className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] z-30 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 shadow-lg"
             style={{ height: "60px" }}
           >
             <div className="grid grid-cols-3 h-full">
@@ -346,17 +391,19 @@ export default function App() {
                   <button
                     key={label}
                     type="button"
-                    onClick={() => setPage(key)}
+                    onClick={() => navigateTo(key)}
                     className={`flex flex-col items-center justify-center gap-0.5 text-xs font-medium transition-colors relative ${
                       isActive
                         ? "text-green-700"
-                        : "text-gray-500 hover:text-gray-700"
+                        : "text-gray-500 dark:text-gray-400 hover:text-gray-700"
                     }`}
                     data-ocid={`nav.${label.toLowerCase().replace(/ /g, "_")}.button`}
                   >
                     <Icon
                       className={`w-5 h-5 ${
-                        isActive ? "text-green-700" : "text-gray-400"
+                        isActive
+                          ? "text-green-700"
+                          : "text-gray-400 dark:text-gray-500"
                       }`}
                     />
                     <span>{label}</span>

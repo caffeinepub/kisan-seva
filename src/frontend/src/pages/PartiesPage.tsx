@@ -93,7 +93,7 @@ function PartyDetailView({
   };
 
   return (
-    <div className="flex flex-col min-h-full bg-gray-50">
+    <div className="flex flex-col min-h-full bg-gray-50 dark:bg-gray-800">
       {/* Header */}
       <div className="sticky top-0 z-30 bg-green-700 text-white px-4 py-3">
         <div className="flex items-center gap-3">
@@ -115,18 +115,26 @@ function PartyDetailView({
 
       <div className="p-4 space-y-3">
         {/* Party Info */}
-        <div className="bg-white rounded-2xl border p-4 space-y-2">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border p-4 space-y-2">
           <div className="flex justify-between items-start">
             <div>
-              <div className="font-bold text-gray-900">{party.name}</div>
-              <div className="text-sm text-gray-500">{party.phone}</div>
+              <div className="font-bold text-gray-900 dark:text-gray-100">
+                {party.name}
+              </div>
+              <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                {party.phone}
+              </div>
               {party.address && (
-                <div className="text-xs text-gray-400">{party.address}</div>
+                <div className="text-xs text-gray-400 dark:text-gray-500">
+                  {party.address}
+                </div>
               )}
             </div>
             {totalDue > 0 && (
               <div className="text-right">
-                <div className="text-xs text-gray-500">Total Due</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                  Total Due
+                </div>
                 <div className="text-xl font-bold text-red-600">
                   ₹{totalDue}
                 </div>
@@ -136,8 +144,8 @@ function PartyDetailView({
 
           {/* Reminder Buttons */}
           {totalDue > 0 && party.phone && (
-            <div className="pt-2 border-t border-gray-100">
-              <p className="text-xs text-gray-500 mb-2">
+            <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
+              <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-2">
                 Send Payment Reminder:
               </p>
               <div className="grid grid-cols-2 gap-2">
@@ -162,7 +170,7 @@ function PartyDetailView({
 
         {/* Transactions Header */}
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-gray-800">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-200">
             Transactions ({partyTxns.length})
           </h3>
           <button
@@ -176,10 +184,10 @@ function PartyDetailView({
 
         {/* Filters */}
         {showFilters && (
-          <div className="bg-white rounded-xl border p-3 space-y-3">
+          <div className="bg-white dark:bg-gray-900 rounded-xl border p-3 space-y-3">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-xs text-gray-500 mb-1 block">
+                <Label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">
                   From Date
                 </Label>
                 <Input
@@ -190,7 +198,7 @@ function PartyDetailView({
                 />
               </div>
               <div>
-                <Label className="text-xs text-gray-500 mb-1 block">
+                <Label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">
                   To Date
                 </Label>
                 <Input
@@ -203,7 +211,7 @@ function PartyDetailView({
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-xs text-gray-500 mb-1 block">
+                <Label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">
                   Min Amount (₹)
                 </Label>
                 <Input
@@ -215,7 +223,7 @@ function PartyDetailView({
                 />
               </div>
               <div>
-                <Label className="text-xs text-gray-500 mb-1 block">
+                <Label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">
                   Max Amount (₹)
                 </Label>
                 <Input
@@ -244,7 +252,7 @@ function PartyDetailView({
 
         {/* Transaction List */}
         {filtered.length === 0 ? (
-          <div className="text-center py-10 text-gray-400">
+          <div className="text-center py-10 text-gray-400 dark:text-gray-500">
             <p>No transactions found</p>
           </div>
         ) : (
@@ -257,27 +265,27 @@ function PartyDetailView({
               return (
                 <div
                   key={`${tx.id}-${i}`}
-                  className="bg-white rounded-xl border border-gray-100 shadow-sm p-3"
+                  className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-3"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="text-xs font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
+                        <span className="text-xs font-bold text-green-700 bg-green-50 dark:bg-green-900/30 px-2 py-0.5 rounded-full">
                           {tx.id}
                         </span>
-                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full capitalize">
+                        <span className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 dark:text-gray-500 px-2 py-0.5 rounded-full capitalize">
                           {tx.paymentMethod}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
                         {fmt12(tx.date, tx.time)}
                       </p>
-                      <p className="text-sm text-gray-700 font-medium mt-0.5">
+                      <p className="text-sm text-gray-700 dark:text-gray-300 font-medium mt-0.5">
                         {tx.workType}
                       </p>
                     </div>
                     <div className="text-right shrink-0 space-y-0.5">
-                      <div className="font-bold text-gray-900">
+                      <div className="font-bold text-gray-900 dark:text-gray-100">
                         ₹{tx.amount}
                       </div>
                       <div className="text-xs text-blue-600">
@@ -301,7 +309,7 @@ function PartyDetailView({
 }
 
 export default function PartiesPage({ actor, onOpenSidebar }: Props) {
-  const { t } = useApp();
+  const { t, goBack } = useApp();
   const [parties, setParties] = useState<Party[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", phone: "", address: "" });
@@ -368,7 +376,7 @@ export default function PartiesPage({ actor, onOpenSidebar }: Props) {
 
   if (showForm) {
     return (
-      <div className="flex flex-col min-h-full bg-white">
+      <div className="flex flex-col min-h-full bg-white dark:bg-gray-900">
         <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b">
           <button
             type="button"
@@ -426,18 +434,28 @@ export default function PartiesPage({ actor, onOpenSidebar }: Props) {
   }
 
   return (
-    <div className="flex flex-col min-h-full bg-white">
+    <div className="flex flex-col min-h-full bg-white dark:bg-gray-900">
       <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b">
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={goBack}
+            className="p-1"
+            data-ocid="parties.back.button"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+          </button>
           <button
             type="button"
             onClick={onOpenSidebar}
             className="p-1"
             data-ocid="parties.menu.button"
           >
-            <Menu className="w-6 h-6 text-gray-700" />
+            <Menu className="w-6 h-6 text-gray-700 dark:text-gray-300" />
           </button>
-          <h1 className="font-bold text-lg text-gray-900">{t.parties}</h1>
+          <h1 className="font-bold text-lg text-gray-900 dark:text-gray-100">
+            {t.parties}
+          </h1>
         </div>
         <button
           type="button"
@@ -450,7 +468,9 @@ export default function PartiesPage({ actor, onOpenSidebar }: Props) {
       </div>
       <div className="p-4 flex flex-col gap-3">
         {displayParties.length === 0 && (
-          <p className="text-gray-400 text-center py-12">{t.noData}</p>
+          <p className="text-gray-400 dark:text-gray-500 text-center py-12">
+            {t.noData}
+          </p>
         )}
         {displayParties.map((p) => {
           const udharMap: Record<string, number> = JSON.parse(
@@ -461,7 +481,7 @@ export default function PartiesPage({ actor, onOpenSidebar }: Props) {
           return (
             <div
               key={p.id.toString()}
-              className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden"
+              className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-sm overflow-hidden"
             >
               {/* Clickable card body */}
               <button
@@ -471,10 +491,16 @@ export default function PartiesPage({ actor, onOpenSidebar }: Props) {
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <div className="font-semibold text-gray-900">{p.name}</div>
-                    <div className="text-sm text-gray-500">{p.phone}</div>
+                    <div className="font-semibold text-gray-900 dark:text-gray-100">
+                      {p.name}
+                    </div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                      {p.phone}
+                    </div>
                     {p.address && (
-                      <div className="text-xs text-gray-400">{p.address}</div>
+                      <div className="text-xs text-gray-400 dark:text-gray-500">
+                        {p.address}
+                      </div>
                     )}
                   </div>
                   <div className="flex flex-col items-end gap-1">
@@ -483,7 +509,9 @@ export default function PartiesPage({ actor, onOpenSidebar }: Props) {
                         ₹{totalDue} {t.pendingDues}
                       </span>
                     )}
-                    <span className="text-xs text-gray-400">Tap to view →</span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500">
+                      Tap to view →
+                    </span>
                   </div>
                 </div>
               </button>
@@ -499,7 +527,7 @@ export default function PartiesPage({ actor, onOpenSidebar }: Props) {
                     setEditId(p.id);
                     setShowForm(true);
                   }}
-                  className="flex-1 py-1.5 rounded-lg border text-sm text-gray-600"
+                  className="flex-1 py-1.5 rounded-lg border text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500"
                 >
                   {t.edit}
                 </button>

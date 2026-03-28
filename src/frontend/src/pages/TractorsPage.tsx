@@ -22,7 +22,7 @@ import {
 type Props = { actor: backendInterface; onOpenSidebar?: () => void };
 
 export default function TractorsPage({ actor, onOpenSidebar }: Props) {
-  const { t } = useApp();
+  const { t, goBack } = useApp();
   const [tractors, setTractors] = useState<Tractor[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -101,7 +101,7 @@ export default function TractorsPage({ actor, onOpenSidebar }: Props) {
 
   if (showForm) {
     return (
-      <div className="flex flex-col min-h-full bg-white">
+      <div className="flex flex-col min-h-full bg-white dark:bg-gray-900">
         <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b">
           <button
             type="button"
@@ -156,18 +156,28 @@ export default function TractorsPage({ actor, onOpenSidebar }: Props) {
   }
 
   return (
-    <div className="flex flex-col min-h-full bg-white">
+    <div className="flex flex-col min-h-full bg-white dark:bg-gray-900">
       <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b">
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={goBack}
+            className="p-1"
+            data-ocid="tractors.back.button"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+          </button>
           <button
             type="button"
             onClick={onOpenSidebar}
             className="p-1"
             data-ocid="tractors.menu.button"
           >
-            <Menu className="w-6 h-6 text-gray-700" />
+            <Menu className="w-6 h-6 text-gray-700 dark:text-gray-300" />
           </button>
-          <h1 className="font-bold text-lg text-gray-900">{t.tractors}</h1>
+          <h1 className="font-bold text-lg text-gray-900 dark:text-gray-100">
+            {t.tractors}
+          </h1>
         </div>
         <button
           type="button"
@@ -180,17 +190,21 @@ export default function TractorsPage({ actor, onOpenSidebar }: Props) {
       </div>
       <div className="p-4 flex flex-col gap-3">
         {tractors.length === 0 && (
-          <p className="text-gray-400 text-center py-12">{t.noTractors}</p>
+          <p className="text-gray-400 dark:text-gray-500 text-center py-12">
+            {t.noTractors}
+          </p>
         )}
         {tractors.map((tr) => (
           <div
             key={tr.id.toString()}
-            className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4"
+            className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-sm p-4"
           >
             <div className="flex items-start justify-between">
               <div>
-                <div className="font-semibold text-gray-900">{tr.name}</div>
-                <div className="text-sm text-gray-500">
+                <div className="font-semibold text-gray-900 dark:text-gray-100">
+                  {tr.name}
+                </div>
+                <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
                   {tr.model} · ₹{tr.ratePerHour.toString()}/hr
                 </div>
               </div>
@@ -237,7 +251,7 @@ export default function TractorsPage({ actor, onOpenSidebar }: Props) {
                   setEditId(tr.id);
                   setShowForm(true);
                 }}
-                className="flex-1 py-1.5 rounded-lg border text-sm text-gray-600"
+                className="flex-1 py-1.5 rounded-lg border text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500"
               >
                 {t.edit}
               </button>

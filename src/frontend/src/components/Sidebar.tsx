@@ -20,7 +20,7 @@ import { useInternetIdentity } from "../hooks/useInternetIdentity";
 type Props = { open: boolean; onClose: () => void };
 
 export default function Sidebar({ open, onClose }: Props) {
-  const { t, setPage, page, logout, currentUser, isGuest } = useApp();
+  const { t, navigateTo, page, logout, currentUser, isGuest } = useApp();
   const { clear } = useInternetIdentity();
 
   if (!open) return null;
@@ -40,7 +40,7 @@ export default function Sidebar({ open, onClose }: Props) {
   ];
 
   const handleNav = (key: Page) => {
-    setPage(key);
+    navigateTo(key);
     onClose();
   };
 
@@ -63,14 +63,14 @@ export default function Sidebar({ open, onClose }: Props) {
         onClick={onClose}
       />
       <div
-        className="fixed left-0 top-0 h-full w-72 bg-white z-50 shadow-2xl flex flex-col overflow-y-auto"
+        className="fixed left-0 top-0 h-full w-72 bg-white dark:bg-gray-900 z-50 shadow-2xl flex flex-col overflow-y-auto"
         style={{ maxWidth: "80vw" }}
         data-ocid="sidebar.panel"
       >
         {/* Header with app name */}
         <div className="flex items-center justify-between px-4 py-3 bg-green-700 shrink-0">
           <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center w-8 h-8 bg-white/20 rounded-full">
+            <div className="flex items-center justify-center w-8 h-8 bg-white dark:bg-gray-900/20 rounded-full">
               <Tractor className="w-5 h-5 text-white" />
             </div>
             <span className="text-white font-bold text-lg">Kisan Seva</span>
@@ -78,79 +78,75 @@ export default function Sidebar({ open, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="text-white p-1 rounded"
+            className="p-1 rounded-lg hover:bg-green-600"
             data-ocid="sidebar.close_button"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5 text-white" />
           </button>
         </div>
 
-        {/* User Info Card */}
-        <div className="flex items-center gap-3 px-4 py-3 bg-green-800 shrink-0">
-          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-sm shrink-0">
-            {initials}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-white font-semibold text-sm truncate">
-              {isGuest ? "Guest User" : currentUser?.name || "User"}
-            </p>
-            <p className="text-green-200 text-xs truncate">
-              {isGuest ? "Guest Mode" : currentUser?.mobile || ""}
-            </p>
+        {/* User info */}
+        <div className="px-4 py-3 bg-green-800 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-sm">
+              {initials}
+            </div>
+            <div>
+              <div className="text-white font-semibold text-sm">
+                {isGuest ? "Guest User" : currentUser?.name || "User"}
+              </div>
+              <div className="text-green-200 text-xs">
+                {isGuest ? "" : currentUser?.mobile || ""}
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Nav items */}
-        <nav className="py-2 flex-1">
+        <nav className="flex-1 py-2">
           {navItems.map(({ key, label, icon: Icon }) => (
             <button
-              type="button"
               key={key}
+              type="button"
               onClick={() => handleNav(key)}
-              className={`flex items-center gap-3 w-full px-5 py-3 text-left text-sm font-medium transition-colors ${
+              className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${
                 page === key
-                  ? "bg-green-50 text-green-700 border-r-4 border-green-700"
-                  : "text-gray-700 hover:bg-gray-50"
+                  ? "bg-green-50 dark:bg-green-900/30 text-green-700 border-r-2 border-green-700"
+                  : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
               }`}
               data-ocid={`sidebar.${key}.link`}
             >
-              <Icon className="w-5 h-5" />
-              <span>{label}</span>
+              <Icon className="w-5 h-5 shrink-0" />
+              {label}
             </button>
           ))}
+        </nav>
 
-          <div className="my-2 border-t border-gray-100" />
-
-          {/* Settings */}
+        {/* Settings & Logout */}
+        <div className="border-t border-gray-200 dark:border-gray-700 py-2 shrink-0">
           <button
             type="button"
             onClick={() => handleNav("settings")}
-            className={`flex items-center gap-3 w-full px-5 py-3 text-left text-sm font-medium transition-colors ${
-              page === "settings"
-                ? "bg-green-50 text-green-700 border-r-4 border-green-700"
-                : "text-gray-700 hover:bg-gray-50"
-            }`}
+            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
             data-ocid="sidebar.settings.link"
           >
             <Settings className="w-5 h-5" />
-            <span>{t.settings}</span>
+            {t.settings}
           </button>
-        </nav>
-
-        {/* Logout */}
-        <button
-          type="button"
-          onClick={() => {
-            clear();
-            logout();
-            onClose();
-          }}
-          className="flex items-center gap-3 px-5 py-4 text-red-600 hover:bg-red-50 border-t text-sm font-medium shrink-0"
-          data-ocid="sidebar.logout.button"
-        >
-          <LogOut className="w-5 h-5" />
-          {t.logout}
-        </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (!isGuest) clear();
+              logout();
+              onClose();
+            }}
+            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+            data-ocid="sidebar.logout.button"
+          >
+            <LogOut className="w-5 h-5" />
+            {isGuest ? t.exitGuestMode : t.logout}
+          </button>
+        </div>
       </div>
     </>
   );

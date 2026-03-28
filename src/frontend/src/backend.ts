@@ -121,6 +121,7 @@ export interface Payment {
 }
 export interface Expense {
     id: bigint;
+    driverId: bigint;
     date: bigint;
     tractorId: bigint;
     notes: string;
@@ -155,6 +156,7 @@ export enum BookingStatus {
 }
 export enum ExpenseCategory {
     other = "other",
+    driverPayment = "driverPayment",
     maintenance = "maintenance",
     diesel = "diesel"
 }
@@ -178,7 +180,7 @@ export interface backendInterface {
     assignDriverToTractor(tractorId: bigint, driverId: bigint | null): Promise<void>;
     createBooking(tractorId: bigint, driverId: bigint, partyId: bigint, workType: string, date: bigint, hours: bigint, ratePerHour: bigint, advancePaid: bigint, paymentMethod: PaymentMethod, notes: string): Promise<bigint>;
     createDriver(name: string, phone: string, performanceNotes: string): Promise<bigint>;
-    createExpense(tractorId: bigint, category: ExpenseCategory, amount: bigint, date: bigint, notes: string): Promise<bigint>;
+    createExpense(tractorId: bigint, driverId: bigint, category: ExpenseCategory, amount: bigint, date: bigint, notes: string): Promise<bigint>;
     createParty(name: string, phone: string, address: string): Promise<bigint>;
     createPayment(bookingId: bigint, amount: bigint, method: PaymentMethod, date: bigint, notes: string): Promise<bigint>;
     createTractor(name: string, model: string, ratePerHour: bigint): Promise<bigint>;
@@ -204,6 +206,7 @@ export interface backendInterface {
     getEarningsThisMonth(): Promise<bigint>;
     getEarningsToday(): Promise<bigint>;
     getExpense(id: bigint): Promise<Expense | null>;
+    getExpensesByDriver(driverId: bigint): Promise<bigint>;
     getExpensesByTractor(tractorId: bigint): Promise<bigint>;
     getNetProfit(startDate: bigint, endDate: bigint): Promise<bigint>;
     getPartiesWithPendingCredit(): Promise<Array<Party>>;
@@ -216,7 +219,7 @@ export interface backendInterface {
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     updateBooking(id: bigint, tractorId: bigint, driverId: bigint, partyId: bigint, workType: string, date: bigint, hours: bigint, ratePerHour: bigint, advancePaid: bigint, paymentMethod: PaymentMethod, status: BookingStatus, notes: string): Promise<void>;
     updateDriver(id: bigint, name: string, phone: string, performanceNotes: string): Promise<void>;
-    updateExpense(id: bigint, tractorId: bigint, category: ExpenseCategory, amount: bigint, date: bigint, notes: string): Promise<void>;
+    updateExpense(id: bigint, tractorId: bigint, driverId: bigint, category: ExpenseCategory, amount: bigint, date: bigint, notes: string): Promise<void>;
     updateParty(id: bigint, name: string, phone: string, address: string): Promise<void>;
     updatePayment(id: bigint, bookingId: bigint, amount: bigint, method: PaymentMethod, date: bigint, notes: string): Promise<void>;
     updateTractor(id: bigint, name: string, model: string, ratePerHour: bigint): Promise<void>;
@@ -295,17 +298,17 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async createExpense(arg0: bigint, arg1: ExpenseCategory, arg2: bigint, arg3: bigint, arg4: string): Promise<bigint> {
+    async createExpense(arg0: bigint, arg1: bigint, arg2: ExpenseCategory, arg3: bigint, arg4: bigint, arg5: string): Promise<bigint> {
         if (this.processError) {
             try {
-                const result = await this.actor.createExpense(arg0, to_candid_ExpenseCategory_n6(this._uploadFile, this._downloadFile, arg1), arg2, arg3, arg4);
+                const result = await this.actor.createExpense(arg0, arg1, to_candid_ExpenseCategory_n6(this._uploadFile, this._downloadFile, arg2), arg3, arg4, arg5);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.createExpense(arg0, to_candid_ExpenseCategory_n6(this._uploadFile, this._downloadFile, arg1), arg2, arg3, arg4);
+            const result = await this.actor.createExpense(arg0, arg1, to_candid_ExpenseCategory_n6(this._uploadFile, this._downloadFile, arg2), arg3, arg4, arg5);
             return result;
         }
     }
@@ -659,6 +662,20 @@ export class Backend implements backendInterface {
             return from_candid_opt_n37(this._uploadFile, this._downloadFile, result);
         }
     }
+    async getExpensesByDriver(arg0: bigint): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getExpensesByDriver(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getExpensesByDriver(arg0);
+            return result;
+        }
+    }
     async getExpensesByTractor(arg0: bigint): Promise<bigint> {
         if (this.processError) {
             try {
@@ -827,17 +844,17 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async updateExpense(arg0: bigint, arg1: bigint, arg2: ExpenseCategory, arg3: bigint, arg4: bigint, arg5: string): Promise<void> {
+    async updateExpense(arg0: bigint, arg1: bigint, arg2: bigint, arg3: ExpenseCategory, arg4: bigint, arg5: bigint, arg6: string): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor.updateExpense(arg0, arg1, to_candid_ExpenseCategory_n6(this._uploadFile, this._downloadFile, arg2), arg3, arg4, arg5);
+                const result = await this.actor.updateExpense(arg0, arg1, arg2, to_candid_ExpenseCategory_n6(this._uploadFile, this._downloadFile, arg3), arg4, arg5, arg6);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.updateExpense(arg0, arg1, to_candid_ExpenseCategory_n6(this._uploadFile, this._downloadFile, arg2), arg3, arg4, arg5);
+            const result = await this.actor.updateExpense(arg0, arg1, arg2, to_candid_ExpenseCategory_n6(this._uploadFile, this._downloadFile, arg3), arg4, arg5, arg6);
             return result;
         }
     }
@@ -1020,6 +1037,7 @@ function from_candid_record_n17(_uploadFile: (file: ExternalBlob) => Promise<Uin
 }
 function from_candid_record_n21(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     id: bigint;
+    driverId: bigint;
     date: bigint;
     tractorId: bigint;
     notes: string;
@@ -1027,6 +1045,7 @@ function from_candid_record_n21(_uploadFile: (file: ExternalBlob) => Promise<Uin
     amount: bigint;
 }): {
     id: bigint;
+    driverId: bigint;
     date: bigint;
     tractorId: bigint;
     notes: string;
@@ -1035,6 +1054,7 @@ function from_candid_record_n21(_uploadFile: (file: ExternalBlob) => Promise<Uin
 } {
     return {
         id: value.id,
+        driverId: value.driverId,
         date: value.date,
         tractorId: value.tractorId,
         notes: value.notes,
@@ -1111,11 +1131,13 @@ function from_candid_variant_n14(_uploadFile: (file: ExternalBlob) => Promise<Ui
 function from_candid_variant_n23(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     other: null;
 } | {
+    driverPayment: null;
+} | {
     maintenance: null;
 } | {
     diesel: null;
 }): ExpenseCategory {
-    return "other" in value ? ExpenseCategory.other : "maintenance" in value ? ExpenseCategory.maintenance : "diesel" in value ? ExpenseCategory.diesel : value;
+    return "other" in value ? ExpenseCategory.other : "driverPayment" in value ? ExpenseCategory.driverPayment : "maintenance" in value ? ExpenseCategory.maintenance : "diesel" in value ? ExpenseCategory.diesel : value;
 }
 function from_candid_variant_n31(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     busy: null;
@@ -1225,12 +1247,16 @@ function to_candid_variant_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8
 function to_candid_variant_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: ExpenseCategory): {
     other: null;
 } | {
+    driverPayment: null;
+} | {
     maintenance: null;
 } | {
     diesel: null;
 } {
     return value == ExpenseCategory.other ? {
         other: null
+    } : value == ExpenseCategory.driverPayment ? {
+        driverPayment: null
     } : value == ExpenseCategory.maintenance ? {
         maintenance: null
     } : value == ExpenseCategory.diesel ? {

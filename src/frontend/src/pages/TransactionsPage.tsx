@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Camera, Menu, Mic, Share2, X } from "lucide-react";
+import { ArrowLeft, Camera, Menu, Mic, Share2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useApp } from "../App";
@@ -159,7 +159,7 @@ Payment: ${methodLabel(data.paymentMethod)}${data.paymentMethod === PaymentMetho
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-end justify-center">
-      <div className="bg-white w-full max-w-md rounded-t-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-900 w-full max-w-md rounded-t-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 bg-green-700 text-white px-4 py-3 flex items-center justify-between rounded-t-2xl">
           <div>
@@ -174,7 +174,7 @@ Payment: ${methodLabel(data.paymentMethod)}${data.paymentMethod === PaymentMetho
         {/* Invoice Content */}
         <div className="p-4 space-y-3">
           {/* Business Info */}
-          <div className="bg-green-50 border border-green-100 rounded-xl p-3">
+          <div className="bg-green-50 dark:bg-green-900/30 border border-green-100 rounded-xl p-3">
             <div className="font-bold text-green-800 text-sm">
               {data.businessName}
             </div>
@@ -184,28 +184,40 @@ Payment: ${methodLabel(data.paymentMethod)}${data.paymentMethod === PaymentMetho
           </div>
 
           {/* Party & Date */}
-          <div className="bg-gray-50 rounded-xl p-3 space-y-1">
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 space-y-1">
             <div className="grid grid-cols-2 gap-1 text-sm">
-              <span className="text-gray-500">Party:</span>
-              <span className="font-semibold text-gray-900">
+              <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                Party:
+              </span>
+              <span className="font-semibold text-gray-900 dark:text-gray-100">
                 {data.partyName}
               </span>
               {data.partyMobile && (
                 <>
-                  <span className="text-gray-500">Mobile:</span>
-                  <span className="text-gray-900">{data.partyMobile}</span>
+                  <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                    Mobile:
+                  </span>
+                  <span className="text-gray-900 dark:text-gray-100">
+                    {data.partyMobile}
+                  </span>
                 </>
               )}
               {data.partyAddress && (
                 <>
-                  <span className="text-gray-500">Address:</span>
-                  <span className="text-gray-900 text-xs">
+                  <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                    Address:
+                  </span>
+                  <span className="text-gray-900 dark:text-gray-100 text-xs">
                     {data.partyAddress}
                   </span>
                 </>
               )}
-              <span className="text-gray-500">Date:</span>
-              <span className="text-gray-900 text-xs">{dateTimeStr}</span>
+              <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                Date:
+              </span>
+              <span className="text-gray-900 dark:text-gray-100 text-xs">
+                {dateTimeStr}
+              </span>
             </div>
           </div>
 
@@ -215,47 +227,69 @@ Payment: ${methodLabel(data.paymentMethod)}${data.paymentMethod === PaymentMetho
               Service Details
             </div>
             <div className="grid grid-cols-2 gap-1 text-sm">
-              <span className="text-gray-500">Service:</span>
-              <span className="font-medium text-gray-900">{data.workType}</span>
-              <span className="text-gray-500">Time:</span>
-              <span className="text-gray-900">{hoursMinStr}</span>
+              <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                Service:
+              </span>
+              <span className="font-medium text-gray-900 dark:text-gray-100">
+                {data.workType}
+              </span>
+              <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                Time:
+              </span>
+              <span className="text-gray-900 dark:text-gray-100">
+                {hoursMinStr}
+              </span>
               {data.rate > 0 && (
                 <>
-                  <span className="text-gray-500">Rate:</span>
-                  <span className="text-gray-900">₹{data.rate}/hr</span>
+                  <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                    Rate:
+                  </span>
+                  <span className="text-gray-900 dark:text-gray-100">
+                    ₹{data.rate}/hr
+                  </span>
                 </>
               )}
             </div>
           </div>
 
           {/* Payment Summary */}
-          <div className="bg-white border-2 border-gray-200 rounded-xl p-3 space-y-2">
-            <div className="font-semibold text-gray-800 text-sm">
+          <div className="bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-2">
+            <div className="font-semibold text-gray-800 dark:text-gray-200 text-sm">
               Payment Summary
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Total Amount:</span>
-              <span className="font-bold text-gray-900">₹{data.amount}</span>
+              <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                Total Amount:
+              </span>
+              <span className="font-bold text-gray-900 dark:text-gray-100">
+                ₹{data.amount}
+              </span>
             </div>
             {data.discount > 0 && (
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Discount:</span>
+                <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                  Discount:
+                </span>
                 <span className="text-green-600">- ₹{data.discount}</span>
               </div>
             )}
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Received:</span>
+              <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                Received:
+              </span>
               <span className="text-blue-700 font-medium">
                 ₹{data.receivedAmount}
               </span>
             </div>
             {data.paymentMethod === PaymentMethod.split && (
-              <div className="text-xs text-gray-500 ml-2">
+              <div className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 ml-2">
                 Cash: ₹{data.splitCash || 0} | UPI: ₹{data.splitUpi || 0}
               </div>
             )}
-            <div className="border-t border-gray-200 pt-2 flex justify-between">
-              <span className="font-bold text-gray-800">Balance Due:</span>
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-2 flex justify-between">
+              <span className="font-bold text-gray-800 dark:text-gray-200">
+                Balance Due:
+              </span>
               <span
                 className={`font-bold text-lg ${balanceDue > 0 ? "text-red-600" : "text-green-600"}`}
               >
@@ -263,7 +297,9 @@ Payment: ${methodLabel(data.paymentMethod)}${data.paymentMethod === PaymentMetho
               </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Method:</span>
+              <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                Method:
+              </span>
               <span className="font-medium">
                 {methodLabel(data.paymentMethod)}
               </span>
@@ -272,7 +308,7 @@ Payment: ${methodLabel(data.paymentMethod)}${data.paymentMethod === PaymentMetho
 
           {/* Share Buttons */}
           <div className="space-y-2">
-            <p className="text-xs text-gray-500 font-medium flex items-center gap-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium flex items-center gap-1">
               <Share2 className="w-3 h-3" /> Share Invoice:
             </p>
             {hasMobile ? (
@@ -296,7 +332,7 @@ Payment: ${methodLabel(data.paymentMethod)}${data.paymentMethod === PaymentMetho
               <button
                 type="button"
                 onClick={handleCopy}
-                className="w-full bg-gray-100 text-gray-700 py-2.5 rounded-xl text-sm font-semibold"
+                className="w-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 py-2.5 rounded-xl text-sm font-semibold"
               >
                 📋 Copy Invoice
               </button>
@@ -308,7 +344,7 @@ Payment: ${methodLabel(data.paymentMethod)}${data.paymentMethod === PaymentMetho
             <button
               type="button"
               onClick={onClose}
-              className="py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600"
+              className="py-3 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-500"
             >
               Close
             </button>
@@ -332,7 +368,7 @@ export default function TransactionsPage({
   prefill,
   onClearPrefill,
 }: Props) {
-  const { t } = useApp();
+  const { t, goBack } = useApp();
   const [parties, setParties] = useState<Party[]>([]);
   const [tractors, setTractors] = useState<Tractor[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -357,6 +393,8 @@ export default function TransactionsPage({
   const [driverId, setDriverId] = useState("");
   const [hours, setHours] = useState(0);
   const [minutes, setMinutes] = useState(0);
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [amount, setAmount] = useState("");
   const [receivedAmount, setReceivedAmount] = useState("");
   const [discount, setDiscount] = useState("");
@@ -447,10 +485,11 @@ export default function TransactionsPage({
 
   // Cash mode: auto-fill received amount from bill amount
   useEffect(() => {
-    if (txType === "cash" && paymentMethod !== PaymentMethod.split && amount) {
-      setReceivedAmount(amount);
+    if (txType === "cash" && paymentMethod !== PaymentMethod.split) {
+      const net = Math.max(0, Number(amount) - (Number(discount) || 0));
+      if (amount) setReceivedAmount(String(net));
     }
-  }, [txType, amount, paymentMethod]);
+  }, [txType, amount, discount, paymentMethod]);
 
   const selectedService = workTypes.find((s) => s.name === workType);
   const serviceRate = selectedService?.rate || 0;
@@ -466,6 +505,8 @@ export default function TransactionsPage({
     setDriverId("");
     setHours(0);
     setMinutes(0);
+    setStartTime("");
+    setEndTime("");
     setAmount("");
     setReceivedAmount("");
     setDiscount("");
@@ -554,8 +595,9 @@ export default function TransactionsPage({
       // Auto-add udhar if partial payment
       const totalAmt = Number(amount);
       const receivedAmt = Number(receivedAmount) || 0;
-      if (receivedAmt < totalAmt && partyId && partyId !== CASH_PARTY_ID) {
-        const balance = totalAmt - receivedAmt;
+      const netAmt = Math.max(0, totalAmt - (Number(discount) || 0));
+      if (receivedAmt < netAmt && partyId && partyId !== CASH_PARTY_ID) {
+        const balance = netAmt - receivedAmt;
         const existingUdhar = JSON.parse(
           localStorage.getItem("ktp_party_udhar") || "{}",
         );
@@ -595,6 +637,7 @@ export default function TransactionsPage({
         splitCash: Number(splitCash) || 0,
         splitUpi: Number(splitUpi) || 0,
         txType,
+        driverId: driverId && driverId !== "none" ? driverId : "",
       });
       localStorage.setItem("ktp_saved_transactions", JSON.stringify(savedTxns));
 
@@ -628,10 +671,24 @@ export default function TransactionsPage({
     setSaving(false);
   };
 
-  const balanceDue =
-    amount && receivedAmount
-      ? Math.max(0, Number(amount) - Number(receivedAmount))
-      : null;
+  // Auto-calculate hours/minutes from start/end time
+  useEffect(() => {
+    if (startTime && endTime) {
+      const [sh, sm] = startTime.split(":").map(Number);
+      const [eh, em] = endTime.split(":").map(Number);
+      let totalMin = eh * 60 + em - (sh * 60 + sm);
+      if (totalMin < 0) totalMin += 24 * 60; // handle overnight
+      if (totalMin > 0) {
+        setHours(Math.floor(totalMin / 60));
+        setMinutes(totalMin % 60);
+      }
+    }
+  }, [startTime, endTime]);
+
+  const netAmount = Math.max(0, Number(amount) - (Number(discount) || 0));
+  const balanceDue = amount
+    ? Math.max(0, netAmount - (Number(receivedAmount) || 0))
+    : null;
 
   const isSaveDisabled =
     saving ||
@@ -641,21 +698,29 @@ export default function TransactionsPage({
       !receivedAmount.trim());
 
   return (
-    <div className="flex flex-col min-h-full bg-gray-50">
+    <div className="flex flex-col min-h-full bg-gray-50 dark:bg-gray-800">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-30 bg-white border-b flex items-center justify-between px-4 pt-4 pb-3">
+      <div className="sticky top-0 z-30 bg-white dark:bg-gray-900 border-b flex items-center justify-between px-4 pt-4 pb-3">
+        <button
+          type="button"
+          onClick={goBack}
+          className="p-1"
+          data-ocid="transactions.back.button"
+        >
+          <ArrowLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+        </button>
         <button
           type="button"
           onClick={onOpenSidebar}
           className="p-1"
           data-ocid="transactions.menu.button"
         >
-          <Menu className="w-5 h-5 text-gray-700" />
+          <Menu className="w-5 h-5 text-gray-700 dark:text-gray-300" />
         </button>
-        <h1 className="font-bold text-base text-gray-900">
+        <h1 className="font-bold text-base text-gray-900 dark:text-gray-100">
           {t.newTransaction}
         </h1>
-        <button type="button" className="p-1 text-gray-400">
+        <button type="button" className="p-1 text-gray-400 dark:text-gray-500">
           <Mic className="w-5 h-5" />
         </button>
       </div>
@@ -664,14 +729,14 @@ export default function TransactionsPage({
         {/* TRANSACTION NO. & BOOKING REF */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label className="text-xs text-gray-500 mb-1 block">
+            <Label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">
               {t.transactionNoLabel}
             </Label>
             <div
               className={`border rounded-md px-3 py-2 text-sm font-mono ${
                 txNumber
                   ? "bg-blue-50 border-blue-200 text-blue-700 font-semibold"
-                  : "bg-gray-100 border-gray-200 text-gray-400"
+                  : "bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500"
               }`}
             >
               {txNumber || t.autoLabel}
@@ -679,7 +744,7 @@ export default function TransactionsPage({
           </div>
           {bookingRef && (
             <div>
-              <Label className="text-xs text-gray-500 mb-1 block">
+              <Label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">
                 {t.bookingRefLabel}
               </Label>
               <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2 text-sm text-blue-700 font-mono">
@@ -691,31 +756,31 @@ export default function TransactionsPage({
 
         {/* DATE & TIME */}
         <div>
-          <Label className="text-sm text-gray-700 mb-1 block">
+          <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
             {t.dateAndTime}
           </Label>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs text-gray-500 mb-1 block">
+              <Label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">
                 {t.dateLabel}
               </Label>
               <Input
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="bg-white"
+                className="bg-white dark:bg-gray-900"
                 data-ocid="transactions.date.input"
               />
             </div>
             <div>
-              <Label className="text-xs text-gray-500 mb-1 block">
+              <Label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">
                 {t.timeLabel}
               </Label>
               <Input
                 type="time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
-                className="bg-white"
+                className="bg-white dark:bg-gray-900"
                 data-ocid="transactions.time.input"
               />
             </div>
@@ -732,7 +797,7 @@ export default function TransactionsPage({
               className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
                 txType === tt
                   ? "border-blue-500 bg-blue-50 text-blue-700"
-                  : "border-gray-200 bg-white text-gray-600"
+                  : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 dark:text-gray-500"
               }`}
               data-ocid={`transactions.${tt}.toggle`}
             >
@@ -743,7 +808,7 @@ export default function TransactionsPage({
 
         {/* Party */}
         <div>
-          <Label className="text-sm text-gray-700 mb-1 block">
+          <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
             {t.customerParty} {txType === "credit" ? "*" : t.optionalLabel}
           </Label>
           <PartySelector
@@ -757,7 +822,7 @@ export default function TransactionsPage({
 
         {/* Party Mobile */}
         <div>
-          <Label className="text-sm text-gray-700 mb-1 block">
+          <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
             {t.partyMobileLabel}{" "}
             {!isCashParty && txType === "credit" ? "*" : ""}
           </Label>
@@ -767,19 +832,23 @@ export default function TransactionsPage({
             onChange={(e) => setPartyMobile(e.target.value)}
             placeholder="Mobile Number"
             disabled={isCashParty}
-            className={isCashParty ? "bg-gray-100 text-gray-400" : "bg-white"}
+            className={
+              isCashParty
+                ? "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500"
+                : "bg-white dark:bg-gray-900"
+            }
             data-ocid="transactions.party_mobile.input"
           />
         </div>
 
         {/* Service / Work Type */}
         <div>
-          <Label className="text-sm text-gray-700 mb-1 block">
+          <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
             {t.workType}
           </Label>
           <Select value={workType} onValueChange={setWorkType}>
             <SelectTrigger
-              className="bg-white"
+              className="bg-white dark:bg-gray-900"
               data-ocid="transactions.worktype.select"
             >
               <SelectValue />
@@ -802,12 +871,12 @@ export default function TransactionsPage({
 
         {/* Tractor */}
         <div>
-          <Label className="text-sm text-gray-700 mb-1 block">
+          <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
             {t.tractor} {t.optionalLabel}
           </Label>
           <Select value={tractorId} onValueChange={setTractorId}>
             <SelectTrigger
-              className="bg-white"
+              className="bg-white dark:bg-gray-900"
               data-ocid="transactions.tractor.select"
             >
               <SelectValue placeholder={t.selectTractor} />
@@ -825,12 +894,12 @@ export default function TransactionsPage({
 
         {/* Driver */}
         <div>
-          <Label className="text-sm text-gray-700 mb-1 block">
+          <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
             {t.drivers} {t.optionalLabel}
           </Label>
           <Select value={driverId} onValueChange={setDriverId}>
             <SelectTrigger
-              className="bg-white"
+              className="bg-white dark:bg-gray-900"
               data-ocid="transactions.driver.select"
             >
               <SelectValue placeholder={t.selectDriver} />
@@ -846,14 +915,47 @@ export default function TransactionsPage({
           </Select>
         </div>
 
+        {/* Start Time & End Time */}
+        <div>
+          <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
+            {t.startTime} / {t.endTime}
+          </Label>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
+                {t.startTime}
+              </Label>
+              <Input
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                className="bg-white dark:bg-gray-900"
+                data-ocid="transactions.start_time.input"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
+                {t.endTime}
+              </Label>
+              <Input
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                className="bg-white dark:bg-gray-900"
+                data-ocid="transactions.end_time.input"
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Hours & Minutes */}
         <div>
-          <Label className="text-sm text-gray-700 mb-1 block">
+          <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
             {t.workTime}
           </Label>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs text-gray-500 mb-1 block">
+              <Label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">
                 {t.hours}
               </Label>
               <Input
@@ -861,12 +963,12 @@ export default function TransactionsPage({
                 min={0}
                 value={hours}
                 onChange={(e) => setHours(Number(e.target.value))}
-                className="bg-white"
+                className="bg-white dark:bg-gray-900"
                 data-ocid="transactions.hours.input"
               />
             </div>
             <div>
-              <Label className="text-xs text-gray-500 mb-1 block">
+              <Label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">
                 {t.minutesLabel}
               </Label>
               <Input
@@ -875,7 +977,7 @@ export default function TransactionsPage({
                 max={59}
                 value={minutes}
                 onChange={(e) => setMinutes(Number(e.target.value))}
-                className="bg-white"
+                className="bg-white dark:bg-gray-900"
                 data-ocid="transactions.minutes.input"
               />
             </div>
@@ -884,7 +986,7 @@ export default function TransactionsPage({
 
         {/* Total Amount */}
         <div>
-          <Label className="text-sm text-gray-700 mb-1 block">
+          <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
             {t.totalAmountLabel}
           </Label>
           <Input
@@ -892,14 +994,14 @@ export default function TransactionsPage({
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0"
-            className="bg-white"
+            className="bg-white dark:bg-gray-900"
             data-ocid="transactions.amount.input"
           />
         </div>
 
         {/* Payment Method */}
         <div>
-          <Label className="text-sm text-gray-700 mb-2 block">
+          <Label className="text-sm text-gray-700 dark:text-gray-300 mb-2 block">
             {t.paymentMethodLabel}
           </Label>
           <div className="grid grid-cols-3 gap-2">
@@ -917,7 +1019,7 @@ export default function TransactionsPage({
                 className={`py-2.5 rounded-xl text-sm font-semibold transition-all border-2 ${
                   paymentMethod === val
                     ? "bg-green-600 text-white border-green-600"
-                    : "bg-white text-gray-600 border-gray-200"
+                    : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-700"
                 }`}
                 data-ocid={`transactions.${val}.toggle`}
               >
@@ -934,7 +1036,7 @@ export default function TransactionsPage({
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs text-gray-600 mb-1 block">
+                  <Label className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500 mb-1 block">
                     {t.splitCashLabel}
                   </Label>
                   <Input
@@ -943,12 +1045,12 @@ export default function TransactionsPage({
                     value={splitCash}
                     onChange={(e) => setSplitCash(e.target.value)}
                     placeholder="0"
-                    className="bg-white"
+                    className="bg-white dark:bg-gray-900"
                     data-ocid="transactions.split_cash.input"
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-gray-600 mb-1 block">
+                  <Label className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500 mb-1 block">
                     {t.splitUpiLabel}
                   </Label>
                   <Input
@@ -957,7 +1059,7 @@ export default function TransactionsPage({
                     value={splitUpi}
                     onChange={(e) => setSplitUpi(e.target.value)}
                     placeholder="0"
-                    className="bg-white"
+                    className="bg-white dark:bg-gray-900"
                     data-ocid="transactions.split_upi.input"
                   />
                 </div>
@@ -975,7 +1077,7 @@ export default function TransactionsPage({
         {/* Payment Received — shown for non-split; for cash only received+discount */}
         {paymentMethod !== PaymentMethod.split && (
           <div>
-            <Label className="text-sm text-gray-700 mb-1 block">
+            <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
               {t.receivedAmountLabel} *
             </Label>
             <Input
@@ -983,7 +1085,7 @@ export default function TransactionsPage({
               value={receivedAmount}
               onChange={(e) => setReceivedAmount(e.target.value)}
               placeholder="0"
-              className="bg-white border-2 border-blue-200 focus:border-blue-400"
+              className="bg-white dark:bg-gray-900 border-2 border-blue-200 focus:border-blue-400"
               data-ocid="transactions.received_amount.input"
             />
           </div>
@@ -993,15 +1095,17 @@ export default function TransactionsPage({
         {amount && receivedAmount && (
           <div
             className={`rounded-xl px-4 py-3 text-center ${
-              Number(amount) - Number(receivedAmount) <= 0
-                ? "bg-green-50"
+              netAmount - Number(receivedAmount) <= 0
+                ? "bg-green-50 dark:bg-green-900/30"
                 : "bg-red-50"
             }`}
           >
-            <span className="text-sm text-gray-500">{t.balanceDueLabel}: </span>
+            <span className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
+              {t.balanceDueLabel}:{" "}
+            </span>
             <span
               className={`text-xl font-bold ${
-                Number(amount) - Number(receivedAmount) <= 0
+                netAmount - Number(receivedAmount) <= 0
                   ? "text-green-700"
                   : "text-red-600"
               }`}
@@ -1013,7 +1117,7 @@ export default function TransactionsPage({
 
         {/* Discount */}
         <div>
-          <Label className="text-sm text-gray-700 mb-1 block">
+          <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
             {t.discountLabel}
           </Label>
           <Input
@@ -1021,7 +1125,7 @@ export default function TransactionsPage({
             value={discount}
             onChange={(e) => setDiscount(e.target.value)}
             placeholder="0"
-            className="bg-white"
+            className="bg-white dark:bg-gray-900"
             data-ocid="transactions.discount.input"
           />
         </div>
@@ -1030,7 +1134,7 @@ export default function TransactionsPage({
         <div>
           <button
             type="button"
-            className="flex items-center gap-2 w-full border-2 border-dashed border-gray-300 rounded-xl py-3 px-4 text-sm text-gray-500 hover:border-gray-400 transition-colors bg-white"
+            className="flex items-center gap-2 w-full border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl py-3 px-4 text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:border-gray-400 transition-colors bg-white dark:bg-gray-900"
             data-ocid="transactions.photo.upload_button"
           >
             <Camera className="w-4 h-4" />

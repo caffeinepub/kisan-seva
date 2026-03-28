@@ -37,6 +37,7 @@ export interface Driver {
 }
 export interface Expense {
   'id' : bigint,
+  'driverId' : bigint,
   'date' : bigint,
   'tractorId' : bigint,
   'notes' : string,
@@ -44,6 +45,7 @@ export interface Expense {
   'amount' : bigint,
 }
 export type ExpenseCategory = { 'other' : null } |
+  { 'driverPayment' : null } |
   { 'maintenance' : null } |
   { 'diesel' : null };
 export interface Party {
@@ -104,7 +106,7 @@ export interface _SERVICE {
   >,
   'createDriver' : ActorMethod<[string, string, string], bigint>,
   'createExpense' : ActorMethod<
-    [bigint, ExpenseCategory, bigint, bigint, string],
+    [bigint, bigint, ExpenseCategory, bigint, bigint, string],
     bigint
   >,
   'createParty' : ActorMethod<[string, string, string], bigint>,
@@ -135,6 +137,7 @@ export interface _SERVICE {
   'getEarningsThisMonth' : ActorMethod<[], bigint>,
   'getEarningsToday' : ActorMethod<[], bigint>,
   'getExpense' : ActorMethod<[bigint], [] | [Expense]>,
+  'getExpensesByDriver' : ActorMethod<[bigint], bigint>,
   'getExpensesByTractor' : ActorMethod<[bigint], bigint>,
   'getNetProfit' : ActorMethod<[bigint, bigint], bigint>,
   'getPartiesWithPendingCredit' : ActorMethod<[], Array<Party>>,
@@ -164,7 +167,7 @@ export interface _SERVICE {
   >,
   'updateDriver' : ActorMethod<[bigint, string, string, string], undefined>,
   'updateExpense' : ActorMethod<
-    [bigint, bigint, ExpenseCategory, bigint, bigint, string],
+    [bigint, bigint, bigint, ExpenseCategory, bigint, bigint, string],
     undefined
   >,
   'updateParty' : ActorMethod<[bigint, string, string, string], undefined>,

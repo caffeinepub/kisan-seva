@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Check, Menu, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ArrowLeft, Check, Menu, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useApp } from "../App";
@@ -34,7 +34,7 @@ export const getStoredServices = (): ServiceItem[] => {
 type Props = { onOpenSidebar?: () => void };
 
 export default function ServicesPage({ onOpenSidebar }: Props) {
-  const { t } = useApp();
+  const { t, goBack } = useApp();
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [newName, setNewName] = useState("");
   const [newRate, setNewRate] = useState("");
@@ -88,19 +88,22 @@ export default function ServicesPage({ onOpenSidebar }: Props) {
   };
 
   return (
-    <div className="flex flex-col min-h-full bg-white">
-      <div className="sticky top-0 z-30 flex items-center gap-3 px-4 pt-4 pb-3 border-b bg-white">
+    <div className="flex flex-col min-h-full bg-white dark:bg-gray-900">
+      <div className="sticky top-0 z-30 flex items-center gap-3 px-4 pt-4 pb-3 border-b bg-white dark:bg-gray-900">
+        <button type="button" onClick={goBack} data-ocid="services.back.button">
+          <ArrowLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+        </button>
         <button
           type="button"
           onClick={onOpenSidebar}
           data-ocid="services.menu.button"
         >
-          <Menu className="w-5 h-5 text-gray-700" />
+          <Menu className="w-5 h-5 text-gray-700 dark:text-gray-300" />
         </button>
         <h1 className="font-bold text-lg flex-1">{t.services}</h1>
       </div>
 
-      <div className="flex items-center px-4 py-2 bg-gray-50 border-b text-xs text-gray-500 font-medium">
+      <div className="flex items-center px-4 py-2 bg-gray-50 dark:bg-gray-800 border-b text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">
         <span className="flex-1">{t.name}</span>
         <span className="w-28 text-right">{t.ratePerHour}</span>
         <span className="w-16" />
@@ -113,7 +116,7 @@ export default function ServicesPage({ onOpenSidebar }: Props) {
         {services.map((s, i) => (
           <div
             key={s.name}
-            className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2.5 border border-gray-100"
+            className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 rounded-xl px-3 py-2.5 border border-gray-100 dark:border-gray-700"
             data-ocid={`services.item.${i + 1}`}
           >
             {editIndex === i ? (
@@ -146,21 +149,21 @@ export default function ServicesPage({ onOpenSidebar }: Props) {
                 <button
                   type="button"
                   onClick={() => setEditIndex(null)}
-                  className="text-gray-400 p-1"
+                  className="text-gray-400 dark:text-gray-500 p-1"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </>
             ) : (
               <>
-                <span className="flex-1 text-sm font-medium text-gray-800">
+                <span className="flex-1 text-sm font-medium text-gray-800 dark:text-gray-200">
                   ⚙️ {s.name}
                 </span>
                 <span className="w-24 text-right text-sm font-semibold text-green-700">
                   {s.rate > 0 ? (
                     `₹${s.rate}`
                   ) : (
-                    <span className="text-gray-400 text-xs">
+                    <span className="text-gray-400 dark:text-gray-500 text-xs">
                       {t.optionalLabel}
                     </span>
                   )}
@@ -185,7 +188,7 @@ export default function ServicesPage({ onOpenSidebar }: Props) {
         ))}
       </div>
 
-      <div className="px-4 pb-6 pt-2 border-t bg-white">
+      <div className="px-4 pb-6 pt-2 border-t bg-white dark:bg-gray-900">
         <div className="flex gap-2">
           <Input
             value={newName}
@@ -212,7 +215,9 @@ export default function ServicesPage({ onOpenSidebar }: Props) {
             <Plus className="w-4 h-4" />
           </Button>
         </div>
-        <p className="text-xs text-gray-400 mt-2">₹/hr = {t.ratePerHour}</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+          ₹/hr = {t.ratePerHour}
+        </p>
       </div>
     </div>
   );

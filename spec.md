@@ -1,45 +1,46 @@
 # Kisan Seva
 
 ## Current State
-- TransactionsPage.tsx (734 lines): Full transaction form with cash/credit toggle, party selector, mobile, service type, tractor/driver dropdowns, hours/minutes, amount, received, discount, split (UPI+cash), payment method buttons, save with duplicate prevention, auto-generated tx number, partial payment auto-udhar logic
-- PartiesPage.tsx (213 lines): Party list with edit/delete, add form with mobile required, shows udhar balance, but no click-through to party's transactions
-- i18n.ts: Trilingual translations (en/hi/gu)
+- PaymentInPage: Shows only parties with pending dues (totalDue > 0); parties with no due are not shown
+- All pages: Headers have a Menu (hamburger) button on left; no back navigation arrow
+- Language: Some pages may have hardcoded English strings instead of using `t.xxx` translation keys
+- App has trilingual support (EN/HI/GU) via `t` from `useApp()`
 
 ## Requested Changes (Diff)
 
 ### Add
-1. **Cash mode → Received auto-fill**: When `txType === 'cash'` (cash toggle selected in transaction form), whenever `amount` field changes, automatically fill `receivedAmount` with the same value
-2. **Invoice modal**: After transaction save, auto-show an invoice modal/sheet with:
-   - Business name + logo (from localStorage `ktp_business_name`, `ktp_business_logo`)
-   - User mobile number (from localStorage `ktp_users` matched to logged-in user)
-   - Party name, mobile, address
-   - Transaction number, date/time (12hr format)
-   - Service type, hours:minutes, rate per hour
-   - Total amount, discount, received amount, balance due
-   - Payment method
-   - Share buttons: WhatsApp (wa.me link) and SMS (sms: link)
-3. **Party detail/transaction view**: In PartiesPage, clicking a party card opens a new view (PartyDetailView) showing:
-   - Party info at top (name, mobile, address, total udhar)
-   - List of all transactions for that party (from localStorage `ktp_saved_transactions`)
-   - Filters: date range and amount range
-   - Each transaction row shows: tx number, date, service, amount, received, balance
-   - "Send Reminder" button per party (or at top) → opens WhatsApp/SMS with reminder message:
-     `"Namaskar [Party Name], aapka ₹[Amount] baaki hai. Kripya jald payment karein. [Business Name] [Business Mobile] — Kisan Seva"`
+1. **Back arrow in all page headers** — Each page's top header should have a back arrow (ArrowLeft icon) on the left side. Clicking it should navigate back to the previous page or to 'home' if no history.
+2. **PaymentIn — Advance payment for all parties** — Even when a party has zero or no due, they should appear in PaymentIn. User can record an advance payment received. This is stored and shown as negative/advance balance on the party.
 
 ### Modify
-- PartiesPage: Party card becomes clickable (tappable) to open PartyDetailView
-- TransactionsPage: Add `useEffect` that watches `amount` and when `txType === 'cash'`, sets `receivedAmount` to same value
-- TransactionsPage: After successful save, instead of just toast, show an InvoiceModal with share options
-- i18n.ts: Add translation keys for invoice, share, reminder, party detail view labels
+1. **PaymentInPage**: 
+   - Show ALL parties (not just those with due > 0), except Cash party
+   - Add a toggle/tab: "Pending Dues" | "All Parties" 
+   - "Pending Dues" tab = existing behavior (parties with due > 0)
+   - "All Parties" tab = all parties shown; selecting any party allows recording advance payment
+   - When advance is received for a party with 0 due, store it as advance credit (reduce future dues)
+   - Label: advance payment mode shows "Advance Received" badge/note
+
+2. **All pages — Back arrow in header**:
+   - Pages that currently show Menu button: add back arrow BEFORE (left of) the menu button, OR replace menu with back arrow and move menu to right side
+   - Actually: implement a navigation history stack in App.tsx, and show a back arrow on all non-home pages
+   - Pages: BookingsPage, TransactionsPage, ReportPage, PartiesPage, TractorsPage, DriversPage, ExpensesPage, ServicesPage, SettingsPage, NotificationsPage, AllTransactionsPage, PaymentInPage
+   - Back arrow navigates to previous page in stack (or 'home' if stack empty)
+
+3. **Language bugs — fix all pages**:
+   - Audit all pages for hardcoded English strings
+   - Replace with `t.xxx` translation keys
+   - Ensure all UI strings (buttons, labels, placeholders, messages) use translations
+   - Pages to check: all pages listed above
+   - Key areas: button labels, section headers, empty state messages, toast messages, form labels
 
 ### Remove
 - Nothing removed
 
 ## Implementation Plan
-1. Add i18n keys for: invoiceTitle, shareWhatsapp, shareSms, sendReminder, partyTransactions, filterByDate, filterByAmount, invoiceLabel, balanceDue, businessName, viewInvoice
-2. In TransactionsPage: Add `useEffect` — when `txType === 'cash'` and `amount` changes, auto-set `receivedAmount = amount`
-3. Create `InvoiceModal` component (can be inline in TransactionsPage or separate file): shows invoice details, WhatsApp share button (wa.me link with pre-filled text), SMS share button (sms: link)
-4. In TransactionsPage: After `handleSave` success, store last saved transaction details in state and show InvoiceModal
-5. In PartiesPage: Add `selectedPartyId` state. When party card clicked, set it to show PartyDetailView
-6. Create PartyDetailView (inline in PartiesPage): reads transactions from localStorage `ktp_saved_transactions`, filters by partyId, shows list with date/amount filters
-7. Add "Send Reminder" button in PartyDetailView that opens WhatsApp/SMS with reminder text using party udhar amount
+1. Add `pageHistory` stack to App.tsx state; update `setPage` to push to stack; add `goBack()` function that pops stack
+2. Add `goBack` to AppContext so all pages can call it
+3. Update all page headers to show ArrowLeft icon on left that calls `goBack()`
+4. Update PaymentInPage to show all parties with a tabs/toggle for Pending Dues vs All Parties
+5. Audit and fix language strings across all pages
+6. Add any missing translation keys to i18n/translations

@@ -8,9 +8,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tractor, UserCheck } from "lucide-react";
+import { Eye, EyeOff, Tractor, UserCheck } from "lucide-react";
 import { useState } from "react";
 import { useApp } from "../App";
+import PasswordStrengthChecklist, {
+  isPasswordValid,
+  usePasswordVisibility,
+} from "../components/PasswordStrengthChecklist";
 import type { useLocalAuth } from "../hooks/useLocalAuth";
 
 type AuthHook = ReturnType<typeof useLocalAuth>;
@@ -24,6 +28,23 @@ type Props = {
 };
 
 type Tab = "login" | "create" | "change";
+
+function EyeToggle({
+  show,
+  onToggle,
+}: { show: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300"
+      tabIndex={-1}
+      aria-label={show ? "Hide password" : "Show password"}
+    >
+      {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+    </button>
+  );
+}
 
 export default function LoginPage({
   onCreateAccount,
@@ -68,6 +89,7 @@ export default function LoginPage({
   const [loginMobile, setLoginMobile] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
+  const loginPwVis = usePasswordVisibility();
 
   // ── Create Account ──
   const [cName, setCName] = useState("");
@@ -79,6 +101,8 @@ export default function LoginPage({
   const [cSecA, setCSecA] = useState("");
   const [cErrors, setCErrors] = useState<Record<string, string>>({});
   const [cSuccess, setCSuccess] = useState("");
+  const cPwVis = usePasswordVisibility();
+  const cConfirmVis = usePasswordVisibility();
 
   // ── Change Password ──
   const [chMobile, setChMobile] = useState("");
@@ -89,6 +113,20 @@ export default function LoginPage({
   const [chConfirmPassword, setChConfirmPassword] = useState("");
   const [chError, setChError] = useState("");
   const [chSuccess, setChSuccess] = useState("");
+  const chPwVis = usePasswordVisibility();
+  const chConfirmVis = usePasswordVisibility();
+
+  // Checklist labels from i18n
+  const pwLabels = {
+    uppercase: (t as any).pwUppercase ?? "Uppercase letter",
+    lowercase: (t as any).pwLowercase ?? "Lowercase letter",
+    number: (t as any).pwNumber ?? "Number",
+    special: (t as any).pwSpecial ?? "Special character (e.g. !?<>@#$%)",
+    length: (t as any).pwLength ?? "8 characters or more",
+    weakError:
+      (t as any).pwWeakError ??
+      "Weak password. Use a mix of uppercase, lowercase, numbers and symbols.",
+  };
 
   // ── Handlers ──
 
@@ -110,7 +148,7 @@ export default function LoginPage({
     const errors: Record<string, string> = {};
     if (!cName.trim()) errors.name = t.fullNameLabel;
     if (!/^\d{10}$/.test(cMobile)) errors.mobile = t.mobileInvalid;
-    if (cPassword.length < 6) errors.password = t.passwordTooShort;
+    if (!isPasswordValid(cPassword)) errors.password = t.passwordTooShort;
     if (cPassword !== cConfirmPassword)
       errors.confirmPassword = t.passwordMismatch;
     if (!/^\d{4}$/.test(cPin)) errors.pin = t.pinInvalid;
@@ -166,7 +204,7 @@ export default function LoginPage({
       setChError(t.secARequired);
       return;
     }
-    if (chNewPassword.length < 6) {
+    if (!isPasswordValid(chNewPassword)) {
       setChError(t.passwordTooShort);
       return;
     }
@@ -198,7 +236,7 @@ export default function LoginPage({
       className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
         tab === tabName
           ? "bg-green-700 text-white shadow"
-          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:bg-gray-700"
       }`}
       data-ocid="auth.tab"
     >
@@ -206,22 +244,27 @@ export default function LoginPage({
     </button>
   );
 
+  const cPasswordValid = isPasswordValid(cPassword);
+  const chPasswordValid = isPasswordValid(chNewPassword);
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-green-700 to-green-900 p-4">
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 flex flex-col items-center gap-5">
+      <div className="w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-6 flex flex-col items-center gap-5">
         {/* Logo */}
         <div className="flex flex-col items-center gap-2">
           <div className="flex items-center justify-center w-16 h-16 bg-green-700 rounded-full shadow-lg">
             <Tractor className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Kisan Seva</h1>
-          <p className="text-gray-500 text-sm text-center">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            Kisan Seva
+          </h1>
+          <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm text-center">
             {t.loginSubtitleText}
           </p>
         </div>
 
         {/* Tab Buttons */}
-        <div className="flex gap-1 w-full bg-gray-100 p-1 rounded-xl">
+        <div className="flex gap-1 w-full bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
           {tabBtn("login", t.loginTabLogin)}
           {tabBtn("create", t.loginTabCreate)}
           {tabBtn("change", t.loginTabPassword)}
@@ -231,7 +274,7 @@ export default function LoginPage({
         {tab === "login" && (
           <div className="w-full flex flex-col gap-3">
             <div>
-              <Label className="text-xs text-gray-600">
+              <Label className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">
                 {t.mobileNumberLabel}
               </Label>
               <Input
@@ -248,15 +291,23 @@ export default function LoginPage({
               />
             </div>
             <div>
-              <Label className="text-xs text-gray-600">{t.passwordLabel}</Label>
-              <Input
-                type="password"
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                placeholder={t.passwordPlaceholder}
-                className="mt-1"
-                data-ocid="auth.input"
-              />
+              <Label className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">
+                {t.passwordLabel}
+              </Label>
+              <div className="relative mt-1">
+                <Input
+                  type={loginPwVis.show ? "text" : "password"}
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  placeholder={t.passwordPlaceholder}
+                  className="pr-10"
+                  data-ocid="auth.input"
+                />
+                <EyeToggle
+                  show={loginPwVis.show}
+                  onToggle={loginPwVis.toggle}
+                />
+              </div>
             </div>
             {loginError && (
               <p
@@ -288,7 +339,7 @@ export default function LoginPage({
           <div className="w-full flex flex-col gap-3">
             {cSuccess && (
               <div
-                className="text-center text-green-700 font-medium text-sm bg-green-50 rounded-lg py-2"
+                className="text-center text-green-700 font-medium text-sm bg-green-50 dark:bg-green-900/30 rounded-lg py-2"
                 data-ocid="auth.success_state"
               >
                 {cSuccess}
@@ -297,7 +348,9 @@ export default function LoginPage({
 
             {/* Name */}
             <div>
-              <Label className="text-xs text-gray-600">{t.fullNameLabel}</Label>
+              <Label className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">
+                {t.fullNameLabel}
+              </Label>
               <Input
                 value={cName}
                 onChange={(e) => setCName(e.target.value)}
@@ -317,7 +370,7 @@ export default function LoginPage({
 
             {/* Mobile */}
             <div>
-              <Label className="text-xs text-gray-600">
+              <Label className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">
                 {t.mobileNumberLabel}
               </Label>
               <Input
@@ -340,42 +393,42 @@ export default function LoginPage({
               )}
             </div>
 
-            {/* Password */}
-            <div>
-              <Label className="text-xs text-gray-600">
-                {t.passwordMinLabel}
-              </Label>
-              <Input
-                type="password"
-                value={cPassword}
-                onChange={(e) => setCPassword(e.target.value)}
-                placeholder={t.passwordPlaceholder}
-                className="mt-1"
-                data-ocid="auth.input"
-              />
-              {cErrors.password && (
-                <p
-                  className="text-red-500 text-xs mt-1"
-                  data-ocid="auth.error_state"
-                >
-                  {cErrors.password}
-                </p>
-              )}
-            </div>
+            {/* Password with strength checklist */}
+            <PasswordStrengthChecklist
+              password={cPassword}
+              labels={pwLabels}
+              show={cPwVis.show}
+              onToggleShow={cPwVis.toggle}
+              onChange={setCPassword}
+              label={t.passwordMinLabel}
+              placeholder={t.passwordPlaceholder}
+              inputOcid="auth.input"
+            />
+            {cErrors.password && (
+              <p className="text-red-500 text-xs" data-ocid="auth.error_state">
+                {cErrors.password}
+              </p>
+            )}
 
             {/* Confirm Password */}
             <div>
-              <Label className="text-xs text-gray-600">
+              <Label className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">
                 {t.confirmPasswordLabel}
               </Label>
-              <Input
-                type="password"
-                value={cConfirmPassword}
-                onChange={(e) => setCConfirmPassword(e.target.value)}
-                placeholder={t.confirmPasswordPlaceholder}
-                className="mt-1"
-                data-ocid="auth.input"
-              />
+              <div className="relative mt-1">
+                <Input
+                  type={cConfirmVis.show ? "text" : "password"}
+                  value={cConfirmPassword}
+                  onChange={(e) => setCConfirmPassword(e.target.value)}
+                  placeholder={t.confirmPasswordPlaceholder}
+                  className="pr-10"
+                  data-ocid="auth.input"
+                />
+                <EyeToggle
+                  show={cConfirmVis.show}
+                  onToggle={cConfirmVis.toggle}
+                />
+              </div>
               {cErrors.confirmPassword && (
                 <p
                   className="text-red-500 text-xs mt-1"
@@ -388,7 +441,9 @@ export default function LoginPage({
 
             {/* PIN */}
             <div>
-              <Label className="text-xs text-gray-600">{t.pinLabel}</Label>
+              <Label className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">
+                {t.pinLabel}
+              </Label>
               <Input
                 type="password"
                 inputMode="numeric"
@@ -411,7 +466,7 @@ export default function LoginPage({
 
             {/* Security Question */}
             <div>
-              <Label className="text-xs text-gray-600">
+              <Label className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">
                 {t.securityQuestionLabel}
               </Label>
               <Select value={cSecQ} onValueChange={setCSecQ}>
@@ -438,7 +493,7 @@ export default function LoginPage({
 
             {/* Security Answer */}
             <div>
-              <Label className="text-xs text-gray-600">
+              <Label className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">
                 {t.securityAnswerLabel}
               </Label>
               <Input
@@ -460,7 +515,8 @@ export default function LoginPage({
 
             <Button
               onClick={handleCreateAccount}
-              className="w-full bg-green-700 hover:bg-green-800 text-white rounded-xl"
+              disabled={!cPasswordValid}
+              className="w-full bg-green-700 hover:bg-green-800 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
               data-ocid="auth.submit_button"
             >
               {t.createAccountBtn}
@@ -473,7 +529,7 @@ export default function LoginPage({
           <div className="w-full flex flex-col gap-3">
             {chSuccess && (
               <div
-                className="text-center text-green-700 font-medium text-sm bg-green-50 rounded-lg py-2"
+                className="text-center text-green-700 font-medium text-sm bg-green-50 dark:bg-green-900/30 rounded-lg py-2"
                 data-ocid="auth.success_state"
               >
                 {chSuccess}
@@ -484,7 +540,7 @@ export default function LoginPage({
             {chStep === 1 && (
               <>
                 <div>
-                  <Label className="text-xs text-gray-600">
+                  <Label className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">
                     {t.mobileNumberLabel}
                   </Label>
                   <Input
@@ -521,11 +577,11 @@ export default function LoginPage({
             {/* Step 2: Answer + New Password */}
             {chStep === 2 && (
               <>
-                <div className="bg-green-50 rounded-lg p-3 text-sm text-green-800 font-medium">
+                <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-3 text-sm text-green-800 font-medium">
                   🔐 {chQuestion}
                 </div>
                 <div>
-                  <Label className="text-xs text-gray-600">
+                  <Label className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">
                     {t.securityAnswerLabel}
                   </Label>
                   <Input
@@ -536,32 +592,40 @@ export default function LoginPage({
                     data-ocid="auth.input"
                   />
                 </div>
+
+                {/* New Password with strength checklist */}
+                <PasswordStrengthChecklist
+                  password={chNewPassword}
+                  labels={pwLabels}
+                  show={chPwVis.show}
+                  onToggleShow={chPwVis.toggle}
+                  onChange={setChNewPassword}
+                  label={t.newPasswordLabel}
+                  placeholder={t.newPasswordPlaceholder}
+                  inputOcid="auth.input"
+                />
+
+                {/* Confirm New Password */}
                 <div>
-                  <Label className="text-xs text-gray-600">
-                    {t.newPasswordLabel}
-                  </Label>
-                  <Input
-                    type="password"
-                    value={chNewPassword}
-                    onChange={(e) => setChNewPassword(e.target.value)}
-                    placeholder={t.newPasswordPlaceholder}
-                    className="mt-1"
-                    data-ocid="auth.input"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-gray-600">
+                  <Label className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">
                     {t.confirmPasswordLabel}
                   </Label>
-                  <Input
-                    type="password"
-                    value={chConfirmPassword}
-                    onChange={(e) => setChConfirmPassword(e.target.value)}
-                    placeholder={t.confirmPasswordPlaceholder}
-                    className="mt-1"
-                    data-ocid="auth.input"
-                  />
+                  <div className="relative mt-1">
+                    <Input
+                      type={chConfirmVis.show ? "text" : "password"}
+                      value={chConfirmPassword}
+                      onChange={(e) => setChConfirmPassword(e.target.value)}
+                      placeholder={t.confirmPasswordPlaceholder}
+                      className="pr-10"
+                      data-ocid="auth.input"
+                    />
+                    <EyeToggle
+                      show={chConfirmVis.show}
+                      onToggle={chConfirmVis.toggle}
+                    />
+                  </div>
                 </div>
+
                 {chError && (
                   <p
                     className="text-red-500 text-xs text-center"
@@ -572,7 +636,8 @@ export default function LoginPage({
                 )}
                 <Button
                   onClick={handleChangePassword}
-                  className="w-full bg-green-700 hover:bg-green-800 text-white rounded-xl"
+                  disabled={!chPasswordValid}
+                  className="w-full bg-green-700 hover:bg-green-800 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
                   data-ocid="auth.submit_button"
                 >
                   {t.changePasswordBtn}
@@ -583,7 +648,7 @@ export default function LoginPage({
                     setChStep(1);
                     setChError("");
                   }}
-                  className="text-xs text-gray-500 underline text-center"
+                  className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 underline text-center"
                 >
                   {t.goBackLink}
                 </button>
@@ -594,11 +659,11 @@ export default function LoginPage({
 
         {/* Divider */}
         <div className="flex items-center gap-2 w-full">
-          <div className="flex-1 h-px bg-gray-200" />
-          <span className="text-gray-400 text-sm font-medium">
+          <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+          <span className="text-gray-400 dark:text-gray-500 text-sm font-medium">
             {t.orDivider}
           </span>
-          <div className="flex-1 h-px bg-gray-200" />
+          <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
         </div>
 
         {/* Guest Login */}

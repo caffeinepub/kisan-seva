@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Bell, Menu, Plus, Trash2, X } from "lucide-react";
+import { ArrowLeft, Bell, Menu, Plus, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useApp } from "../App";
@@ -43,7 +43,7 @@ function getStatus(date: string): "overdue" | "today" | "upcoming" {
 type Props = { onOpenSidebar?: () => void };
 
 export default function NotificationsPage({ onOpenSidebar }: Props) {
-  const { t } = useApp();
+  const { t, goBack } = useApp();
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [formType, setFormType] = useState<ReminderType>("service");
@@ -107,15 +107,19 @@ export default function NotificationsPage({ onOpenSidebar }: Props) {
   const ReminderCard = ({ r }: { r: Reminder }) => {
     const status = getStatus(r.date);
     return (
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
+      <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-sm p-4">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0 mr-3">
-            <div className="font-semibold text-gray-900">{r.title}</div>
-            <div className="text-sm text-gray-500 mt-0.5">
+            <div className="font-semibold text-gray-900 dark:text-gray-100">
+              {r.title}
+            </div>
+            <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-0.5">
               📅 {new Date(`${r.date}T00:00:00`).toLocaleDateString()}
             </div>
             {r.notes && (
-              <div className="text-xs text-gray-400 mt-1">{r.notes}</div>
+              <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                {r.notes}
+              </div>
             )}
           </div>
           <div className="flex flex-col items-end gap-2">
@@ -138,13 +142,21 @@ export default function NotificationsPage({ onOpenSidebar }: Props) {
   };
 
   return (
-    <div className="flex flex-col min-h-full bg-white">
+    <div className="flex flex-col min-h-full bg-white dark:bg-gray-900">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-white border-b flex items-center justify-between px-4 pt-4 pb-3">
-        <button type="button" onClick={onOpenSidebar} className="p-1">
-          <Menu className="w-6 h-6 text-gray-700" />
+      <div className="sticky top-0 z-30 bg-white dark:bg-gray-900 border-b flex items-center justify-between px-4 pt-4 pb-3">
+        <button
+          type="button"
+          onClick={goBack}
+          className="p-1"
+          data-ocid="notifications.back.button"
+        >
+          <ArrowLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
         </button>
-        <h1 className="font-bold text-lg text-gray-900 flex items-center gap-2">
+        <button type="button" onClick={onOpenSidebar} className="p-1">
+          <Menu className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+        </button>
+        <h1 className="font-bold text-lg text-gray-900 dark:text-gray-100 flex items-center gap-2">
           <Bell className="w-5 h-5" /> {t.notifications}
         </h1>
         <button
@@ -159,7 +171,7 @@ export default function NotificationsPage({ onOpenSidebar }: Props) {
 
       {/* Add Reminder Form */}
       {showForm && (
-        <div className="mx-4 mt-3 p-4 bg-green-50 border border-green-200 rounded-2xl flex flex-col gap-3">
+        <div className="mx-4 mt-3 p-4 bg-green-50 dark:bg-green-900/30 border border-green-200 rounded-2xl flex flex-col gap-3">
           <p className="text-sm font-bold text-green-800">{t.addReminder}</p>
           <div className="grid grid-cols-2 gap-2">
             <button
@@ -168,7 +180,7 @@ export default function NotificationsPage({ onOpenSidebar }: Props) {
               className={`py-2 rounded-xl border-2 text-sm font-semibold transition-all ${
                 formType === "service"
                   ? "border-green-600 bg-green-600 text-white"
-                  : "border-gray-200 bg-white text-gray-600"
+                  : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 dark:text-gray-500"
               }`}
             >
               🔧 {t.serviceReminderTab}
@@ -179,36 +191,36 @@ export default function NotificationsPage({ onOpenSidebar }: Props) {
               className={`py-2 rounded-xl border-2 text-sm font-semibold transition-all ${
                 formType === "payment"
                   ? "border-blue-600 bg-blue-600 text-white"
-                  : "border-gray-200 bg-white text-gray-600"
+                  : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 dark:text-gray-500"
               }`}
             >
               💰 {t.paymentReminderTab}
             </button>
           </div>
           <div>
-            <Label className="text-sm text-gray-700 mb-1 block">
+            <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
               {t.reminderTitle} *
             </Label>
             <Input
               value={formTitle}
               onChange={(e) => setFormTitle(e.target.value)}
               placeholder={t.reminderTitle}
-              className="bg-white"
+              className="bg-white dark:bg-gray-900"
             />
           </div>
           <div>
-            <Label className="text-sm text-gray-700 mb-1 block">
+            <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
               {t.reminderDate}
             </Label>
             <Input
               type="date"
               value={formDate}
               onChange={(e) => setFormDate(e.target.value)}
-              className="bg-white"
+              className="bg-white dark:bg-gray-900"
             />
           </div>
           <div>
-            <Label className="text-sm text-gray-700 mb-1 block">
+            <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
               {t.reminderNote} {t.optionalLabel}
             </Label>
             <Textarea
@@ -216,7 +228,7 @@ export default function NotificationsPage({ onOpenSidebar }: Props) {
               onChange={(e) => setFormNotes(e.target.value)}
               rows={2}
               placeholder={t.reminderNote}
-              className="bg-white"
+              className="bg-white dark:bg-gray-900"
             />
           </div>
           <Button
@@ -238,7 +250,9 @@ export default function NotificationsPage({ onOpenSidebar }: Props) {
           className="flex-1 px-4 pt-3 flex flex-col gap-3"
         >
           {serviceReminders.length === 0 ? (
-            <p className="text-gray-400 text-center py-12">{t.noReminders}</p>
+            <p className="text-gray-400 dark:text-gray-500 text-center py-12">
+              {t.noReminders}
+            </p>
           ) : (
             serviceReminders.map((r) => <ReminderCard key={r.id} r={r} />)
           )}
@@ -248,7 +262,9 @@ export default function NotificationsPage({ onOpenSidebar }: Props) {
           className="flex-1 px-4 pt-3 flex flex-col gap-3"
         >
           {paymentReminders.length === 0 ? (
-            <p className="text-gray-400 text-center py-12">{t.noReminders}</p>
+            <p className="text-gray-400 dark:text-gray-500 text-center py-12">
+              {t.noReminders}
+            </p>
           ) : (
             paymentReminders.map((r) => <ReminderCard key={r.id} r={r} />)
           )}

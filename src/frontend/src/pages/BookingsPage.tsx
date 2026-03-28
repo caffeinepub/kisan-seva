@@ -61,7 +61,7 @@ export default function BookingsPage({
   onCompleteBooking,
   listOnly,
 }: Props) {
-  const { t } = useApp();
+  const { t, goBack } = useApp();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [parties, setParties] = useState<Party[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -197,7 +197,7 @@ export default function BookingsPage({
 
   if (showForm) {
     return (
-      <div className="flex flex-col min-h-full bg-white">
+      <div className="flex flex-col min-h-full bg-white dark:bg-gray-900">
         <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b">
           <button
             type="button"
@@ -242,8 +242,8 @@ export default function BookingsPage({
               disabled={form.partyId === CASH_PARTY_ID}
               className={
                 form.partyId === CASH_PARTY_ID
-                  ? "bg-gray-100 text-gray-400"
-                  : "bg-white"
+                  ? "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500"
+                  : "bg-white dark:bg-gray-900"
               }
               data-ocid="bookings.party_mobile.input"
             />
@@ -304,18 +304,26 @@ export default function BookingsPage({
   }
 
   return (
-    <div className="flex flex-col min-h-full bg-white">
+    <div className="flex flex-col min-h-full bg-white dark:bg-gray-900">
       <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b">
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={goBack}
+            className="p-1"
+            data-ocid="bookings.back.button"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+          </button>
           <button
             type="button"
             onClick={onOpenSidebar}
             className="p-1"
             data-ocid="bookings.menu.button"
           >
-            <Menu className="w-6 h-6 text-gray-700" />
+            <Menu className="w-6 h-6 text-gray-700 dark:text-gray-300" />
           </button>
-          <h1 className="font-bold text-lg text-gray-900">
+          <h1 className="font-bold text-lg text-gray-900 dark:text-gray-100">
             {listOnly ? t.bookingList : t.bookings}
           </h1>
         </div>
@@ -333,7 +341,7 @@ export default function BookingsPage({
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
         {bookings.length === 0 && (
           <p
-            className="text-gray-400 text-center py-12"
+            className="text-gray-400 dark:text-gray-500 text-center py-12"
             data-ocid="bookings.empty_state"
           >
             {t.noBookings}
@@ -342,7 +350,7 @@ export default function BookingsPage({
         {bookings.map((b, idx) => (
           <div
             key={b.id.toString()}
-            className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4"
+            className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-sm p-4"
             data-ocid={`bookings.item.${idx + 1}`}
           >
             <div className="flex items-start justify-between">
@@ -352,11 +360,13 @@ export default function BookingsPage({
                     {getBkgNumber(b.id)}
                   </span>
                 </div>
-                <div className="font-semibold text-gray-900">
+                <div className="font-semibold text-gray-900 dark:text-gray-100">
                   {getPartyName(b.partyId)}
                 </div>
-                <div className="text-sm text-gray-500">{b.workType}</div>
-                <div className="text-sm text-gray-400">
+                <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                  {b.workType}
+                </div>
+                <div className="text-sm text-gray-400 dark:text-gray-500">
                   {new Date(Number(b.date)).toLocaleDateString()}
                 </div>
               </div>
@@ -382,7 +392,7 @@ export default function BookingsPage({
               <button
                 type="button"
                 onClick={() => openEdit(b)}
-                className="flex-1 py-1.5 rounded-lg border text-sm text-gray-600 hover:bg-gray-50"
+                className="flex-1 py-1.5 rounded-lg border text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:bg-gray-800"
                 data-ocid={`bookings.edit.button.${idx + 1}`}
               >
                 {t.edit}
