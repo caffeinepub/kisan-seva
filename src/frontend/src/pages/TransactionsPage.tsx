@@ -21,6 +21,7 @@ import {
   type backendInterface,
 } from "../backend";
 import PartySelector from "../components/PartySelector";
+import { saveCashFlowEntries } from "../lib/cashFlowUtils";
 import { CASH_PARTY_ID } from "../lib/cashParty";
 import { getStoredServices } from "./ServicesPage";
 
@@ -640,6 +641,65 @@ export default function TransactionsPage({
         driverId: driverId && driverId !== "none" ? driverId : "",
       });
       localStorage.setItem("ktp_saved_transactions", JSON.stringify(savedTxns));
+
+      // Save to cash flow
+      if (receivedAmt > 0) {
+        const cfEntries: import("../lib/cashFlowUtils").CashFlowEntry[] = [];
+        const partyLabel = selectedParty?.name || "Cash";
+        if (paymentMethod === PaymentMethod.cash) {
+          cfEntries.push({
+            id: `cf_tx_${Date.now()}_c`,
+            date,
+            time,
+            partyName: partyLabel,
+            label: `${workType} - ${partyLabel}`,
+            amount: receivedAmt,
+            paymentMethod: "cash" as const,
+            type: "in" as const,
+            source: "transaction" as const,
+          });
+        } else if (paymentMethod === PaymentMethod.upi) {
+          cfEntries.push({
+            id: `cf_tx_${Date.now()}_u`,
+            date,
+            time,
+            partyName: partyLabel,
+            label: `${workType} - ${partyLabel}`,
+            amount: receivedAmt,
+            paymentMethod: "upi" as const,
+            type: "in" as const,
+            source: "transaction" as const,
+          });
+        } else if (paymentMethod === PaymentMethod.split) {
+          const sc = Number(splitCash) || 0;
+          const su = Number(splitUpi) || 0;
+          if (sc > 0)
+            cfEntries.push({
+              id: `cf_tx_${Date.now()}_sc`,
+              date,
+              time,
+              partyName: partyLabel,
+              label: `${workType} - ${partyLabel}`,
+              amount: sc,
+              paymentMethod: "cash" as const,
+              type: "in" as const,
+              source: "transaction" as const,
+            });
+          if (su > 0)
+            cfEntries.push({
+              id: `cf_tx_${Date.now()}_su`,
+              date,
+              time,
+              partyName: partyLabel,
+              label: `${workType} - ${partyLabel}`,
+              amount: su,
+              paymentMethod: "upi" as const,
+              type: "in" as const,
+              source: "transaction" as const,
+            });
+        }
+        if (cfEntries.length > 0) saveCashFlowEntries(cfEntries);
+      }
 
       // Build invoice data and show modal
       setInvoiceData({

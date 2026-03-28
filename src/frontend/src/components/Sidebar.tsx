@@ -14,6 +14,7 @@ import {
   Wrench,
   X,
 } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 import { type Page, useApp } from "../App";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 
@@ -37,6 +38,8 @@ export default function Sidebar({ open, onClose }: Props) {
     { key: "services", label: t.services, icon: Wrench },
     { key: "expenses", label: t.expenses, icon: Receipt },
     { key: "notifications", label: t.notifications, icon: Bell },
+    { key: "cashFlow", label: t.cashFlow, icon: TrendingUp },
+    { key: "balanceSheet", label: t.balanceSheet, icon: BarChart2 },
   ];
 
   const handleNav = (key: Page) => {

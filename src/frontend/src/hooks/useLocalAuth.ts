@@ -116,6 +116,19 @@ export function useLocalAuth() {
     return account?.securityQuestion ?? null;
   }
 
+  function deleteAccount(mobile: string, pin: string): boolean {
+    const accounts = getAccounts();
+    const idx = accounts.findIndex((a) => a.mobile === mobile && a.pin === pin);
+    if (idx === -1) return false;
+    accounts.splice(idx, 1);
+    saveAccounts(accounts);
+    const keysToRemove = Object.keys(localStorage).filter(
+      (k) => k.startsWith("ktp_") && k !== ACCOUNTS_KEY,
+    );
+    for (const k of keysToRemove) localStorage.removeItem(k);
+    return true;
+  }
+
   return {
     isLoggedIn,
     isGuest,
@@ -126,5 +139,6 @@ export function useLocalAuth() {
     logout,
     changePassword,
     getSecurityQuestion,
+    deleteAccount,
   };
 }

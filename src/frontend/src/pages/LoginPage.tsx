@@ -136,7 +136,7 @@ export default function LoginPage({
       setLoginError(t.mobileInvalid);
       return;
     }
-    if (loginPassword.length < 6) {
+    if (loginPassword.length < 8) {
       setLoginError(t.passwordTooShort);
       return;
     }

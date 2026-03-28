@@ -1,18 +1,46 @@
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, LogOut, Moon, Sun } from "lucide-react";
-import { useEffect, useState } from "react";
+import {
+  ArrowLeft,
+  Cloud,
+  Download,
+  LogOut,
+  Moon,
+  Sun,
+  Trash2,
+  Upload,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useApp } from "../App";
 import type { backendInterface } from "../backend";
+import { useLocalAuth } from "../hooks/useLocalAuth";
 
 type Props = { actor: backendInterface };
 
 export default function SettingsPage({ actor }: Props) {
-  const { t, lang, setLang, goBack, isGuest, logout, darkMode, setDarkMode } =
-    useApp();
+  const {
+    t,
+    lang,
+    setLang,
+    goBack,
+    isGuest,
+    logout,
+    darkMode,
+    setDarkMode,
+    currentUser,
+  } = useApp();
+  const { deleteAccount } = useLocalAuth();
   const [profile, setProfile] = useState({
     ownerName: "",
     businessName: "",
@@ -20,6 +48,14 @@ export default function SettingsPage({ actor }: Props) {
     phone: "",
   });
   const [saving, setSaving] = useState(false);
+
+  // Delete account dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletePin, setDeletePin] = useState("");
+  const [deletePinError, setDeletePinError] = useState("");
+
+  // File input ref for restore
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     actor.getCallerUserProfile().then((p) => {
@@ -42,6 +78,70 @@ export default function SettingsPage({ actor }: Props) {
       toast.error(t.errorSavingMsg);
     }
     setSaving(false);
+  };
+
+  // --- Backup ---
+  const handleDownloadBackup = () => {
+    const backupData: Record<string, any> = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith("ktp_")) {
+        try {
+          backupData[key] = JSON.parse(localStorage.getItem(key) || "null");
+        } catch {
+          backupData[key] = localStorage.getItem(key);
+        }
+      }
+    }
+    const json = JSON.stringify(backupData, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const date = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `kisan-seva-backup-${date}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(t.backupDownloaded || "Backup download started ✓");
+  };
+
+  const handleRestoreClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleRestoreFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target?.result as string);
+        for (const [key, value] of Object.entries(data)) {
+          if (key.startsWith("ktp_")) {
+            localStorage.setItem(key, JSON.stringify(value));
+          }
+        }
+        toast.success(t.restoreSuccess || "Data restored! Reloading...");
+        setTimeout(() => window.location.reload(), 1200);
+      } catch {
+        toast.error("Invalid backup file");
+      }
+    };
+    reader.readAsText(file);
+    // Reset file input
+    e.target.value = "";
+  };
+
+  // --- Delete Account ---
+  const handleConfirmDelete = () => {
+    if (!currentUser?.mobile) return;
+    const success = deleteAccount(currentUser.mobile, deletePin);
+    if (!success) {
+      setDeletePinError(t.wrongPin || "Wrong PIN");
+      return;
+    }
+    setDeleteDialogOpen(false);
+    logout();
   };
 
   return (
@@ -102,6 +202,48 @@ export default function SettingsPage({ actor }: Props) {
               onCheckedChange={setDarkMode}
               data-ocid="settings.switch"
             />
+          </div>
+        </div>
+
+        {/* Backup & Restore */}
+        <div>
+          <h2 className="font-semibold text-gray-800 dark:text-gray-200 mb-3">
+            {t.backupRestore || "Backup & Restore"}
+          </h2>
+          <div className="flex flex-col gap-2">
+            <Button
+              variant="outline"
+              onClick={handleDownloadBackup}
+              className="w-full justify-start gap-2 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+              data-ocid="settings.primary_button"
+            >
+              <Download className="w-4 h-4" />
+              {t.downloadBackup || "Download Backup"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleRestoreClick}
+              className="w-full justify-start gap-2 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+              data-ocid="settings.secondary_button"
+            >
+              <Upload className="w-4 h-4" />
+              {t.restoreBackup || "Restore Backup"}
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              className="hidden"
+              onChange={handleRestoreFile}
+            />
+            {!isGuest && (
+              <div className="flex items-center gap-2 mt-1 px-1">
+                <Cloud className="w-4 h-4 text-green-600" />
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {t.cloudSynced || "Data synced to cloud"}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -188,7 +330,89 @@ export default function SettingsPage({ actor }: Props) {
             {isGuest ? t.exitGuestMode : t.logout}
           </Button>
         </div>
+
+        {/* Delete Account (only for logged-in non-guest) */}
+        {!isGuest && (
+          <div className="pb-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeletePin("");
+                setDeletePinError("");
+                setDeleteDialogOpen(true);
+              }}
+              className="w-full border-red-500 text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-500 dark:hover:bg-red-900/20 rounded-xl py-3"
+              data-ocid="settings.open_modal_button"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              {t.deleteAccount || "Delete Account"}
+            </Button>
+          </div>
+        )}
       </div>
+
+      {/* Delete Account Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent
+          className="dark:bg-gray-900 dark:border-gray-700"
+          data-ocid="settings.dialog"
+        >
+          <DialogHeader>
+            <DialogTitle className="text-red-600 dark:text-red-400 flex items-center gap-2">
+              <Trash2 className="w-5 h-5" />
+              {t.deleteAccount || "Delete Account"}
+            </DialogTitle>
+            <DialogDescription className="text-gray-700 dark:text-gray-300">
+              {t.deleteAccountWarning ||
+                "This will permanently delete your account and all data. This cannot be undone."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 py-2">
+            <Label className="text-gray-700 dark:text-gray-300">
+              {t.enterPinToConfirm || "Enter PIN to confirm"}
+            </Label>
+            <Input
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              placeholder="••••"
+              value={deletePin}
+              onChange={(e) => {
+                setDeletePin(e.target.value.replace(/\D/g, "").slice(0, 4));
+                setDeletePinError("");
+              }}
+              className="dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 tracking-widest text-center text-xl"
+              data-ocid="settings.input"
+            />
+            {deletePinError && (
+              <p
+                className="text-red-500 text-sm text-center"
+                data-ocid="settings.error_state"
+              >
+                {deletePinError}
+              </p>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              className="dark:border-gray-600 dark:text-gray-300"
+              data-ocid="settings.cancel_button"
+            >
+              {t.cancel || "Cancel"}
+            </Button>
+            <Button
+              disabled={deletePin.length < 4}
+              onClick={handleConfirmDelete}
+              className="bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+              data-ocid="settings.confirm_button"
+            >
+              {t.confirmDelete || "Confirm Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

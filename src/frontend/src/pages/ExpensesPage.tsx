@@ -21,6 +21,7 @@ import {
   type Tractor,
   type backendInterface,
 } from "../backend";
+import { saveCashFlowEntries } from "../lib/cashFlowUtils";
 
 type Props = { actor: backendInterface; onOpenSidebar?: () => void };
 
@@ -56,6 +57,9 @@ export default function ExpensesPage({ actor, onOpenSidebar }: Props) {
   });
   const [editId, setEditId] = useState<bigint | null>(null);
   const [saving, setSaving] = useState(false);
+  const [expensePayMethod, setExpensePayMethod] = useState<"cash" | "upi">(
+    "cash",
+  );
 
   const load = async () => {
     const [exp, tr, dr] = await Promise.all([
@@ -123,6 +127,18 @@ export default function ExpensesPage({ actor, onOpenSidebar }: Props) {
           form.notes,
         );
         toast.success(t.expenseAdded);
+        saveCashFlowEntries([
+          {
+            id: `cf_exp_${Date.now()}`,
+            date: form.date,
+            time: "",
+            label: `${getCategoryLabel(form.category)}${form.notes ? ` - ${form.notes}` : ""}`,
+            amount: Number(form.amount),
+            paymentMethod: expensePayMethod,
+            type: "out",
+            source: "expense",
+          },
+        ]);
       }
       resetForm();
       await load();
@@ -335,6 +351,26 @@ export default function ExpensesPage({ actor, onOpenSidebar }: Props) {
             />
           </div>
 
+          {/* Payment Method for Expense */}
+          <div>
+            <p className="text-sm font-medium mb-1">Payment Method</p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setExpensePayMethod("cash")}
+                className={`flex-1 py-2 rounded-lg text-sm font-semibold border transition-all ${expensePayMethod === "cash" ? "bg-green-600 text-white border-green-600" : "bg-gray-100 text-gray-600 border-gray-200"}`}
+              >
+                💵 Cash
+              </button>
+              <button
+                type="button"
+                onClick={() => setExpensePayMethod("upi")}
+                className={`flex-1 py-2 rounded-lg text-sm font-semibold border transition-all ${expensePayMethod === "upi" ? "bg-blue-600 text-white border-blue-600" : "bg-gray-100 text-gray-600 border-gray-200"}`}
+              >
+                📱 UPI
+              </button>
+            </div>
+          </div>
           <Button
             onClick={handleSave}
             disabled={saving}

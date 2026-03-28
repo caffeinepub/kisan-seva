@@ -7,7 +7,9 @@ import { useActor } from "./hooks/useActor";
 import { type LocalUser, useLocalAuth } from "./hooks/useLocalAuth";
 import { type Lang, getT } from "./i18n";
 import AllTransactionsPage from "./pages/AllTransactionsPage";
+import BalanceSheetPage from "./pages/BalanceSheetPage";
 import BookingsPage from "./pages/BookingsPage";
+import CashFlowPage from "./pages/CashFlowPage";
 import Dashboard from "./pages/Dashboard";
 import DriversPage from "./pages/DriversPage";
 import ExpensesPage from "./pages/ExpensesPage";
@@ -35,7 +37,9 @@ export type Page =
   | "report"
   | "notifications"
   | "allTransactions"
-  | "paymentIn";
+  | "paymentIn"
+  | "cashFlow"
+  | "balanceSheet";
 
 type AppCtx = {
   lang: Lang;
@@ -321,6 +325,20 @@ export default function App() {
       case "allTransactions":
         return (
           <AllTransactionsPage
+            actor={actor}
+            onOpenSidebar={() => setSidebarOpen(true)}
+          />
+        );
+      case "cashFlow":
+        return (
+          <CashFlowPage
+            actor={actor}
+            onOpenSidebar={() => setSidebarOpen(true)}
+          />
+        );
+      case "balanceSheet":
+        return (
+          <BalanceSheetPage
             actor={actor}
             onOpenSidebar={() => setSidebarOpen(true)}
           />
