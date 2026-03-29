@@ -19,7 +19,14 @@ const SESSION_KEY = "ktp_session";
 
 function getAccounts(): AccountRecord[] {
   try {
-    return JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || "[]");
+    const raw = localStorage.getItem(ACCOUNTS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    // Handle double-stringified case (backup restore bug)
+    if (typeof parsed === "string") {
+      return JSON.parse(parsed);
+    }
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }

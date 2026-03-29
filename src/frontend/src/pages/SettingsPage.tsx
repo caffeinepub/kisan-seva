@@ -93,6 +93,7 @@ export default function SettingsPage({ actor }: Props) {
         try {
           backupData[key] = JSON.parse(localStorage.getItem(key) || "null");
         } catch {
+          // Store raw string values as-is (they can't be JSON.parsed)
           backupData[key] = localStorage.getItem(key);
         }
       }
@@ -122,7 +123,12 @@ export default function SettingsPage({ actor }: Props) {
         const data = JSON.parse(ev.target?.result as string);
         for (const [key, value] of Object.entries(data)) {
           if (key.startsWith("ktp_")) {
-            localStorage.setItem(key, JSON.stringify(value));
+            // If value is already a string, store it directly to avoid double-stringification
+            if (typeof value === "string") {
+              localStorage.setItem(key, value);
+            } else {
+              localStorage.setItem(key, JSON.stringify(value));
+            }
           }
         }
         toast.success(t.restoreSuccess || "Data restored! Reloading...");

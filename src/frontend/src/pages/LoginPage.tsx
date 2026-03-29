@@ -89,6 +89,7 @@ export default function LoginPage({
   const [loginMobile, setLoginMobile] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
+  const [showCreateHint, setShowCreateHint] = useState(false);
   const loginPwVis = usePasswordVisibility();
 
   // ── Create Account ──
@@ -132,15 +133,21 @@ export default function LoginPage({
 
   function handleLogin() {
     setLoginError("");
+    setShowCreateHint(false);
     if (!/^\d{10}$/.test(loginMobile)) {
       setLoginError(t.mobileInvalid);
       return;
     }
     const result = onLogin(loginMobile, loginPassword);
     if (result === "mobile_not_found") {
-      setLoginError((t as any).loginMobileNotFound ?? t.mobileNotRegistered);
+      setLoginError(
+        (t as any).loginMobileNotFound ??
+          "This mobile number is not registered. Please create a new account.",
+      );
+      setShowCreateHint(true);
     } else if (result === "wrong_password") {
       setLoginError((t as any).loginWrongPassword ?? t.loginWrongCredentials);
+      setShowCreateHint(false);
     }
   }
 
@@ -282,9 +289,10 @@ export default function LoginPage({
                 inputMode="numeric"
                 maxLength={10}
                 value={loginMobile}
-                onChange={(e) =>
-                  setLoginMobile(e.target.value.replace(/\D/g, ""))
-                }
+                onChange={(e) => {
+                  setLoginMobile(e.target.value.replace(/\D/g, ""));
+                  setShowCreateHint(false);
+                }}
                 placeholder={t.mobileNumberPlaceholder}
                 className="mt-1"
                 data-ocid="auth.input"
@@ -310,12 +318,23 @@ export default function LoginPage({
               </div>
             </div>
             {loginError && (
-              <p
-                className="text-red-500 text-xs text-center"
-                data-ocid="auth.error_state"
-              >
-                {loginError}
-              </p>
+              <div data-ocid="auth.error_state">
+                <p className="text-red-500 text-xs text-center">{loginError}</p>
+                {showCreateHint && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTab("create");
+                      setCMobile(loginMobile);
+                      setLoginError("");
+                      setShowCreateHint(false);
+                    }}
+                    className="mt-1 w-full text-xs text-green-700 underline text-center font-medium"
+                  >
+                    {(t as any).createAccountLink ?? "→ Create New Account"}
+                  </button>
+                )}
+              </div>
             )}
             <Button
               onClick={handleLogin}
