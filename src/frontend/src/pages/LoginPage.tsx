@@ -25,6 +25,7 @@ type Props = {
   onGuestLogin: AuthHook["guestLogin"];
   onChangePassword: AuthHook["changePassword"];
   getSecurityQuestion: AuthHook["getSecurityQuestion"];
+  onAdminAccess: () => void;
 };
 
 type Tab = "login" | "create" | "change";
@@ -52,6 +53,7 @@ export default function LoginPage({
   onGuestLogin,
   onChangePassword,
   getSecurityQuestion,
+  onAdminAccess,
 }: Props) {
   const { t, lang } = useApp();
 
@@ -88,6 +90,7 @@ export default function LoginPage({
   // ── Login ──
   const [loginMobile, setLoginMobile] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
+  const [adminMobileHidden, setAdminMobileHidden] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [showCreateHint, setShowCreateHint] = useState(false);
   const loginPwVis = usePasswordVisibility();
@@ -134,6 +137,12 @@ export default function LoginPage({
   function handleLogin() {
     setLoginError("");
     setShowCreateHint(false);
+    // Check for admin code
+    const adminCode = localStorage.getItem("ktp_admin_code") || "admin123";
+    if (loginPassword === adminCode) {
+      onAdminAccess();
+      return;
+    }
     if (!/^\d{10}$/.test(loginMobile)) {
       setLoginError(t.mobileInvalid);
       return;
@@ -280,24 +289,27 @@ export default function LoginPage({
         {/* ── Tab: Login ── */}
         {tab === "login" && (
           <div className="w-full flex flex-col gap-3">
-            <div>
-              <Label className="text-sm text-gray-600 dark:text-gray-400">
-                {t.mobileNumberLabel}
-              </Label>
-              <Input
-                type="tel"
-                inputMode="numeric"
-                maxLength={10}
-                value={loginMobile}
-                onChange={(e) => {
-                  setLoginMobile(e.target.value.replace(/\D/g, ""));
-                  setShowCreateHint(false);
-                }}
-                placeholder={t.mobileNumberPlaceholder}
-                className="mt-1 text-base"
-                data-ocid="auth.input"
-              />
-            </div>
+            {!adminMobileHidden && (
+              <div>
+                <Label className="text-sm text-gray-600 dark:text-gray-400">
+                  {t.mobileNumberLabel}
+                </Label>
+                <Input
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  value={loginMobile}
+                  onChange={(e) => {
+                    setLoginMobile(e.target.value.replace(/\D/g, ""));
+                    setShowCreateHint(false);
+                  }}
+                  placeholder={t.mobileNumberPlaceholder}
+                  className="mt-1 text-base"
+                  data-ocid="auth.input"
+                />
+              </div>
+            )}
+
             <div>
               <Label className="text-sm text-gray-600 dark:text-gray-400">
                 {t.passwordLabel}
@@ -306,7 +318,13 @@ export default function LoginPage({
                 <Input
                   type={loginPwVis.show ? "text" : "password"}
                   value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setLoginPassword(val);
+                    const adminCode =
+                      localStorage.getItem("ktp_admin_code") || "admin123";
+                    setAdminMobileHidden(val === adminCode);
+                  }}
                   placeholder={t.passwordPlaceholder}
                   className="pr-10 text-base"
                   data-ocid="auth.input"

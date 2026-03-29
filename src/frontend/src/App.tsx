@@ -12,6 +12,7 @@ import Sidebar from "./components/Sidebar";
 import { type LocalUser, useLocalAuth } from "./hooks/useLocalAuth";
 import { type Lang, getT } from "./i18n";
 import { createLocalActor } from "./lib/localActor";
+import AdminPanelPage from "./pages/AdminPanelPage";
 import AllTransactionsPage from "./pages/AllTransactionsPage";
 import BalanceSheetPage from "./pages/BalanceSheetPage";
 import BookingsPage from "./pages/BookingsPage";
@@ -49,7 +50,8 @@ export type Page =
   | "paymentIn"
   | "cashFlow"
   | "balanceSheet"
-  | "equipment";
+  | "equipment"
+  | "adminPanel";
 
 type AppCtx = {
   lang: Lang;
@@ -122,6 +124,7 @@ export default function App() {
   const [page, setPage] = useState<Page>("home");
   const [pageHistory, setPageHistory] = useState<Page[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [bookingPrefill, setBookingPrefill] = useState<BookingPrefill>(null);
   const [editTransaction, setEditTransaction] =
     useState<SavedTransactionFull | null>(null);
@@ -208,6 +211,14 @@ export default function App() {
   }
 
   if (!isLoggedIn && !isGuest) {
+    if (showAdminPanel) {
+      return (
+        <AppContext.Provider value={contextValue}>
+          <AdminPanelPage onExit={() => setShowAdminPanel(false)} />
+          <Toaster />
+        </AppContext.Provider>
+      );
+    }
     return (
       <AppContext.Provider value={contextValue}>
         <LoginPage
@@ -216,6 +227,7 @@ export default function App() {
           onGuestLogin={guestLogin}
           onChangePassword={changePassword}
           getSecurityQuestion={getSecurityQuestion}
+          onAdminAccess={() => setShowAdminPanel(true)}
         />
         <Toaster />
       </AppContext.Provider>
@@ -340,6 +352,7 @@ export default function App() {
           <PartiesPage
             actor={actor}
             onOpenSidebar={() => setSidebarOpen(true)}
+            onEditTransaction={handleEditTransaction}
           />
         );
       case "tractors":

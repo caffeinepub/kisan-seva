@@ -9,13 +9,13 @@
   "background_color": "#15803d",
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Ccircle cx='96' cy='96' r='96' fill='%2315803d'/%3E%3Csvg x='38' y='38' width='116' height='116' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 14V9a4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v5'/%3E%3Cpath d='M7 9h4'/%3E%3Cpath d='m16 5-3-3-3 3'/%3E%3Cpath d='M22 9h-7'/%3E%3Cpath d='M17 9v4.4'/%3E%3Ccircle cx='7.5' cy='17.5' r='2.5'/%3E%3Ccircle cx='16' cy='18' r='4'/%3E%3C/svg%3E%3C/svg%3E",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Ccircle cx='96' cy='96' r='96' fill='%2315803d'/%3E%3Cg transform='translate(38%2C38) scale(4.833)' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' fill='none'%3E%3Cpath d='M1 14V9a4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v5'/%3E%3Cpath d='M7 9h4'/%3E%3Cpath d='m16 5-3-3-3 3'/%3E%3Cpath d='M22 9h-7'/%3E%3Cpath d='M17 9v4.4'/%3E%3Ccircle cx='7.5' cy='17.5' r='2.5'/%3E%3Ccircle cx='16' cy='18' r='4'/%3E%3C/g%3E%3C/svg%3E",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Ccircle cx='256' cy='256' r='256' fill='%2315803d'/%3E%3Csvg x='102' y='102' width='308' height='308' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 14V9a4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v5'/%3E%3Cpath d='M7 9h4'/%3E%3Cpath d='m16 5-3-3-3 3'/%3E%3Cpath d='M22 9h-7'/%3E%3Cpath d='M17 9v4.4'/%3E%3Ccircle cx='7.5' cy='17.5' r='2.5'/%3E%3Ccircle cx='16' cy='18' r='4'/%3E%3C/svg%3E%3C/svg%3E",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Ccircle cx='256' cy='256' r='256' fill='%2315803d'/%3E%3Cg transform='translate(102%2C102) scale(12.833)' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' fill='none'%3E%3Cpath d='M1 14V9a4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v5'/%3E%3Cpath d='M7 9h4'/%3E%3Cpath d='m16 5-3-3-3 3'/%3E%3Cpath d='M22 9h-7'/%3E%3Cpath d='M17 9v4.4'/%3E%3Ccircle cx='7.5' cy='17.5' r='2.5'/%3E%3Ccircle cx='16' cy='18' r='4'/%3E%3C/g%3E%3C/svg%3E",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"

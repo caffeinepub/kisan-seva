@@ -282,11 +282,11 @@ export default function Dashboard({
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                          {partyName}
+                        </span>
                         <span className="text-green-700 font-mono bg-green-50 dark:bg-green-900/30 px-2 py-0.5 rounded-full text-xs w-fit">
                           #TXN-{pay.id.toString().padStart(4, "0")}
-                        </span>
-                        <span className="text-gray-700 dark:text-gray-300 text-xs font-semibold">
-                          {partyName}
                         </span>
                         <span className="text-gray-400 dark:text-gray-500 text-xs">
                           {dateStr}
@@ -393,7 +393,6 @@ export default function Dashboard({
           <span className="font-bold text-gray-800 dark:text-gray-200 text-base">
             {businessName}
           </span>
-          <Pencil className="w-4 h-4 text-gray-400 dark:text-gray-500" />
         </div>
         <div className="w-8" />
       </div>

@@ -472,6 +472,7 @@ export default function TransactionsPage({
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [saving, setSaving] = useState(false);
   const [savedOnce, setSavedOnce] = useState(false);
+  const [licenceExpired, setLicenceExpired] = useState(false);
   const [editingTxId, setEditingTxId] = useState<string | null>(null);
   const [showVoiceConfirm, setShowVoiceConfirm] = useState(false);
   const [voiceParsed, setVoiceParsed] = useState<
@@ -696,6 +697,28 @@ export default function TransactionsPage({
   };
 
   const handleSave = async () => {
+    // Check if user is blocked (licence expired)
+    const blockedUsers: string[] = (() => {
+      try {
+        return JSON.parse(localStorage.getItem("ktp_blocked_users") || "[]");
+      } catch {
+        return [];
+      }
+    })();
+    const currentMobile = (() => {
+      try {
+        return (
+          JSON.parse(localStorage.getItem("ktp_session") || "null")?.user
+            ?.mobile || ""
+        );
+      } catch {
+        return "";
+      }
+    })();
+    if (blockedUsers.includes(currentMobile)) {
+      setLicenceExpired(true);
+      return;
+    }
     if (!amount) {
       toast.error(t.amountRequiredMsg);
       return;
@@ -1079,678 +1102,700 @@ export default function TransactionsPage({
       !receivedAmount.trim());
 
   return (
-    <div className="flex flex-col min-h-full bg-gray-50 dark:bg-gray-800">
-      {/* Sticky Header */}
-      <div className="sticky top-0 z-30 bg-white dark:bg-gray-900 border-b flex items-center justify-between px-4 pt-4 pb-3">
-        <button
-          type="button"
-          onClick={goBack}
-          className="p-1"
-          data-ocid="transactions.back.button"
-        >
-          <ArrowLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-        </button>
-        <button
-          type="button"
-          onClick={onOpenSidebar}
-          className="p-1"
-          data-ocid="transactions.menu.button"
-        >
-          <Menu className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-        </button>
-        <h1 className="font-bold text-base text-gray-900 dark:text-gray-100">
-          {editingTxId ? "Edit Transaction" : t.newTransaction}
-        </h1>
-        <div className="w-8" />
-      </div>
+    <>
+      <div className="flex flex-col min-h-full bg-gray-50 dark:bg-gray-800">
+        {/* Sticky Header */}
+        <div className="sticky top-0 z-30 bg-white dark:bg-gray-900 border-b flex items-center justify-between px-4 pt-4 pb-3">
+          <button
+            type="button"
+            onClick={goBack}
+            className="p-1"
+            data-ocid="transactions.back.button"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+          </button>
+          <button
+            type="button"
+            onClick={onOpenSidebar}
+            className="p-1"
+            data-ocid="transactions.menu.button"
+          >
+            <Menu className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+          </button>
+          <h1 className="font-bold text-base text-gray-900 dark:text-gray-100">
+            {editingTxId ? "Edit Transaction" : t.newTransaction}
+          </h1>
+          <div className="w-8" />
+        </div>
 
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 pb-20">
-        {/* TRANSACTION NO. & BOOKING REF */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">
-              {t.transactionNoLabel}
-            </Label>
-            <div
-              className={`border rounded-md px-3 py-2 text-sm font-mono ${
-                txNumber
-                  ? "bg-blue-50 border-blue-200 text-blue-700 font-semibold"
-                  : "bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500"
-              }`}
-            >
-              {txNumber || t.autoLabel}
-            </div>
-          </div>
-          {bookingRef && (
+        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 pb-20">
+          {/* TRANSACTION NO. & BOOKING REF */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">
-                {t.bookingRefLabel}
+                {t.transactionNoLabel}
               </Label>
-              <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2 text-sm text-blue-700 font-mono">
-                {bookingRef}
+              <div
+                className={`border rounded-md px-3 py-2 text-sm font-mono ${
+                  txNumber
+                    ? "bg-blue-50 border-blue-200 text-blue-700 font-semibold"
+                    : "bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500"
+                }`}
+              >
+                {txNumber || t.autoLabel}
               </div>
             </div>
-          )}
-        </div>
-
-        {/* DATE & TIME */}
-        <div>
-          <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
-            {t.dateAndTime}
-          </Label>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">
-                {t.dateLabel}
-              </Label>
-              <Input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="bg-white dark:bg-gray-900"
-                data-ocid="transactions.date.input"
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">
-                {t.timeLabel}
-              </Label>
-              <Input
-                type="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                className="bg-white dark:bg-gray-900"
-                data-ocid="transactions.time.input"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Cash / Credit Toggle */}
-        <div className="grid grid-cols-2 gap-2">
-          {(["cash", "credit"] as TransactionType[]).map((tt) => (
-            <button
-              key={tt}
-              type="button"
-              onClick={() => setTxType(tt)}
-              className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
-                txType === tt
-                  ? "border-blue-500 bg-blue-50 text-blue-700"
-                  : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 dark:text-gray-500"
-              }`}
-              data-ocid={`transactions.${tt}.toggle`}
-            >
-              {tt === "cash" ? t.cashToggle : t.creditToggle}
-            </button>
-          ))}
-        </div>
-
-        {/* Party */}
-        <div>
-          <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
-            {t.customerParty} {txType === "credit" ? "*" : t.optionalLabel}
-          </Label>
-          <PartySelector
-            actor={actor}
-            parties={parties}
-            value={partyId}
-            onChange={(id) => setPartyId(id)}
-            onPartiesUpdate={setParties}
-          />
-        </div>
-
-        {/* Party Mobile */}
-        <div>
-          <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
-            {t.partyMobileLabel}{" "}
-            {!isCashParty && txType === "credit" ? "*" : ""}
-          </Label>
-          <Input
-            type="tel"
-            value={partyMobile}
-            onChange={(e) => setPartyMobile(e.target.value)}
-            placeholder="Mobile Number"
-            disabled={isCashParty}
-            className={
-              isCashParty
-                ? "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500"
-                : "bg-white dark:bg-gray-900"
-            }
-            data-ocid="transactions.party_mobile.input"
-          />
-        </div>
-
-        {/* Service / Work Type */}
-        <div>
-          <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
-            {t.workType}
-          </Label>
-          <Select value={workType} onValueChange={setWorkType}>
-            <SelectTrigger
-              className="bg-white dark:bg-gray-900"
-              data-ocid="transactions.worktype.select"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {workTypes.map((wt) => (
-                <SelectItem key={wt.name} value={wt.name}>
-                  {wt.name}
-                  {wt.rate > 0 ? ` (₹${wt.rate}/hr)` : ""}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {serviceRate > 0 && (
-            <p className="text-xs text-green-700 mt-1">
-              ✓ ₹{serviceRate}/hr — {t.autoFillHint}
-            </p>
-          )}
-          {isFixedPrice && (
-            <p className="text-xs text-orange-600 mt-1">
-              ⚠ Fixed price service — Enter amount manually, time fields
-              disabled
-            </p>
-          )}
-        </div>
-
-        {/* Tractor */}
-        <div>
-          <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
-            {t.tractor} {t.optionalLabel}
-          </Label>
-          <Select value={tractorId} onValueChange={setTractorId}>
-            <SelectTrigger
-              className="bg-white dark:bg-gray-900"
-              data-ocid="transactions.tractor.select"
-            >
-              <SelectValue placeholder={t.selectTractor} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">{t.emptySlot}</SelectItem>
-              {tractors.map((tr) => (
-                <SelectItem key={tr.id.toString()} value={tr.id.toString()}>
-                  {tr.name} ({tr.model})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Driver */}
-        <div>
-          <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
-            {t.drivers} {t.optionalLabel}
-          </Label>
-          <Select value={driverId} onValueChange={setDriverId}>
-            <SelectTrigger
-              className="bg-white dark:bg-gray-900"
-              data-ocid="transactions.driver.select"
-            >
-              <SelectValue placeholder={t.selectDriver} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">{t.emptySlot}</SelectItem>
-              {drivers.map((dr) => (
-                <SelectItem key={dr.id.toString()} value={dr.id.toString()}>
-                  {dr.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Start/End Time Entries */}
-        <div>
-          <Label className="text-sm text-gray-700 dark:text-gray-300 mb-2 block">
-            {(t as any).timeEntries || "Start/End Time"}
-          </Label>
-          <div className="space-y-2">
-            {timeEntries.map((entry) => {
-              const entryMin = calcEntryMinutes(entry.startTime, entry.endTime);
-              const entryH = Math.floor(entryMin / 60);
-              const entryM = entryMin % 60;
-              return (
-                <div
-                  key={entry.id}
-                  className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 rounded-lg p-2"
-                >
-                  <div className="flex-1">
-                    <Label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
-                      {t.startTime}
-                    </Label>
-                    <Input
-                      type="time"
-                      value={entry.startTime}
-                      onChange={(e) => {
-                        const updated = timeEntries.map((en) =>
-                          en.id === entry.id
-                            ? { ...en, startTime: e.target.value }
-                            : en,
-                        );
-                        setTimeEntries(updated);
-                      }}
-                      disabled={isFixedPrice}
-                      className={
-                        isFixedPrice
-                          ? "bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
-                          : "bg-white dark:bg-gray-900"
-                      }
-                      data-ocid="transactions.time_entry_start.input"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <Label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
-                      {t.endTime}
-                    </Label>
-                    <Input
-                      type="time"
-                      value={entry.endTime}
-                      onChange={(e) => {
-                        const updated = timeEntries.map((en) =>
-                          en.id === entry.id
-                            ? { ...en, endTime: e.target.value }
-                            : en,
-                        );
-                        setTimeEntries(updated);
-                      }}
-                      disabled={isFixedPrice}
-                      className={
-                        isFixedPrice
-                          ? "bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
-                          : "bg-white dark:bg-gray-900"
-                      }
-                      data-ocid="transactions.time_entry_end.input"
-                    />
-                  </div>
-                  {entryMin > 0 && (
-                    <div className="text-xs text-green-600 dark:text-green-400 font-medium whitespace-nowrap pt-4">
-                      {entryH > 0 ? `${entryH}h ` : ""}
-                      {entryM > 0 ? `${entryM}m` : ""}
-                    </div>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setTimeEntries(
-                        timeEntries.filter((en) => en.id !== entry.id),
-                      )
-                    }
-                    disabled={isFixedPrice}
-                    className="pt-4 text-red-400 hover:text-red-600 disabled:opacity-30"
-                    aria-label="Remove time entry"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+            {bookingRef && (
+              <div>
+                <Label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">
+                  {t.bookingRefLabel}
+                </Label>
+                <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2 text-sm text-blue-700 font-mono">
+                  {bookingRef}
                 </div>
-              );
-            })}
-            {timeEntries.length > 1 &&
-              (() => {
-                const totalMin = timeEntries.reduce(
-                  (sum, e) => sum + calcEntryMinutes(e.startTime, e.endTime),
-                  0,
-                );
-                const tH = Math.floor(totalMin / 60);
-                const tM = totalMin % 60;
-                return totalMin > 0 ? (
-                  <div className="text-sm font-bold text-green-600 dark:text-green-400 text-right pr-2">
-                    {(t as any).totalTime || "Total"}: {tH > 0 ? `${tH}h ` : ""}
-                    {tM > 0 ? `${tM}m` : ""}
-                  </div>
-                ) : null;
-              })()}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                setTimeEntries([
-                  ...timeEntries,
-                  { id: Date.now().toString(), startTime: "", endTime: "" },
-                ])
-              }
-              disabled={isFixedPrice}
-              className="w-full border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950 dark:text-green-400 dark:border-green-700"
-            >
-              <Plus size={14} className="mr-1" />
-              {(t as any).addTime || "Add Time"}
-            </Button>
+              </div>
+            )}
           </div>
-        </div>
 
-        {/* Hours & Minutes */}
-        <div>
-          <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
-            {t.workTime}
-          </Label>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">
-                {t.hours}
-              </Label>
-              <Input
-                type="number"
-                min={0}
-                value={isFixedPrice ? 0 : hours}
-                onChange={(e) =>
-                  !isFixedPrice && setHours(Number(e.target.value))
-                }
-                disabled={isFixedPrice}
-                className={
-                  isFixedPrice
-                    ? "bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed"
-                    : "bg-white dark:bg-gray-900"
-                }
-                data-ocid="transactions.hours.input"
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">
-                {t.minutesLabel}
-              </Label>
-              <Input
-                type="number"
-                min={0}
-                max={59}
-                value={isFixedPrice ? 0 : minutes}
-                onChange={(e) =>
-                  !isFixedPrice && setMinutes(Number(e.target.value))
-                }
-                disabled={isFixedPrice}
-                className={
-                  isFixedPrice
-                    ? "bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed"
-                    : "bg-white dark:bg-gray-900"
-                }
-                data-ocid="transactions.minutes.input"
-              />
+          {/* DATE & TIME */}
+          <div>
+            <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
+              {t.dateAndTime}
+            </Label>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">
+                  {t.dateLabel}
+                </Label>
+                <Input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="bg-white dark:bg-gray-900"
+                  data-ocid="transactions.date.input"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">
+                  {t.timeLabel}
+                </Label>
+                <Input
+                  type="time"
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
+                  className="bg-white dark:bg-gray-900"
+                  data-ocid="transactions.time.input"
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Total Amount */}
-        <div>
-          <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
-            {t.totalAmountLabel}
-          </Label>
-          <Input
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="0"
-            className="bg-white dark:bg-gray-900"
-            data-ocid="transactions.amount.input"
-          />
-        </div>
-
-        {/* Payment Method */}
-        <div>
-          <Label className="text-sm text-gray-700 dark:text-gray-300 mb-2 block">
-            {t.paymentMethodLabel}
-          </Label>
-          <div className="grid grid-cols-3 gap-2">
-            {(
-              [
-                { val: PaymentMethod.cash, label: t.cashToggle },
-                { val: PaymentMethod.upi, label: "📱 UPI" },
-                { val: PaymentMethod.split, label: `📊 ${t.split}` },
-              ] as const
-            ).map(({ val, label }) => (
+          {/* Cash / Credit Toggle */}
+          <div className="grid grid-cols-2 gap-2">
+            {(["cash", "credit"] as TransactionType[]).map((tt) => (
               <button
-                key={val}
+                key={tt}
                 type="button"
-                onClick={() => setPaymentMethod(val)}
-                className={`py-2.5 rounded-xl text-sm font-semibold transition-all border-2 ${
-                  paymentMethod === val
-                    ? "bg-green-600 text-white border-green-600"
-                    : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-700"
+                onClick={() => setTxType(tt)}
+                className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
+                  txType === tt
+                    ? "border-blue-500 bg-blue-50 text-blue-700"
+                    : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 dark:text-gray-500"
                 }`}
-                data-ocid={`transactions.${val}.toggle`}
+                data-ocid={`transactions.${tt}.toggle`}
               >
-                {label}
+                {tt === "cash" ? t.cashToggle : t.creditToggle}
               </button>
             ))}
           </div>
 
-          {/* Split Payment Fields */}
-          {paymentMethod === PaymentMethod.split && (
-            <div className="mt-3 bg-blue-50 border border-blue-200 rounded-xl p-3 flex flex-col gap-3">
-              <p className="text-xs text-blue-700 font-semibold">
-                {t.splitPaymentTitle}
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500 mb-1 block">
-                    {t.splitCashLabel}
-                  </Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={splitCash}
-                    onChange={(e) => setSplitCash(e.target.value)}
-                    placeholder="0"
-                    className="bg-white dark:bg-gray-900"
-                    data-ocid="transactions.split_cash.input"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500 mb-1 block">
-                    {t.splitUpiLabel}
-                  </Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={splitUpi}
-                    onChange={(e) => setSplitUpi(e.target.value)}
-                    placeholder="0"
-                    className="bg-white dark:bg-gray-900"
-                    data-ocid="transactions.split_upi.input"
-                  />
-                </div>
-              </div>
-              {(splitCash || splitUpi) && (
-                <p className="text-xs text-blue-800 font-medium">
-                  {t.totalReceivedLabel}: ₹
-                  {(Number(splitCash) || 0) + (Number(splitUpi) || 0)}
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Payment Received — shown for non-split; for cash only received+discount */}
-        {paymentMethod !== PaymentMethod.split && (
+          {/* Party */}
           <div>
             <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
-              {t.receivedAmountLabel} *
+              {t.customerParty} {txType === "credit" ? "*" : t.optionalLabel}
+            </Label>
+            <PartySelector
+              actor={actor}
+              parties={parties}
+              value={partyId}
+              onChange={(id) => setPartyId(id)}
+              onPartiesUpdate={setParties}
+            />
+          </div>
+
+          {/* Party Mobile */}
+          <div>
+            <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
+              {t.partyMobileLabel}{" "}
+              {!isCashParty && txType === "credit" ? "*" : ""}
+            </Label>
+            <Input
+              type="tel"
+              value={partyMobile}
+              onChange={(e) => setPartyMobile(e.target.value)}
+              placeholder="Mobile Number"
+              disabled={isCashParty}
+              className={
+                isCashParty
+                  ? "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500"
+                  : "bg-white dark:bg-gray-900"
+              }
+              data-ocid="transactions.party_mobile.input"
+            />
+          </div>
+
+          {/* Service / Work Type */}
+          <div>
+            <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
+              {t.workType}
+            </Label>
+            <Select value={workType} onValueChange={setWorkType}>
+              <SelectTrigger
+                className="bg-white dark:bg-gray-900"
+                data-ocid="transactions.worktype.select"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {workTypes.map((wt) => (
+                  <SelectItem key={wt.name} value={wt.name}>
+                    {wt.name}
+                    {wt.rate > 0 ? ` (₹${wt.rate}/hr)` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {serviceRate > 0 && (
+              <p className="text-xs text-green-700 mt-1">
+                ✓ ₹{serviceRate}/hr — {t.autoFillHint}
+              </p>
+            )}
+            {isFixedPrice && (
+              <p className="text-xs text-orange-600 mt-1">
+                ⚠ Fixed price service — Enter amount manually, time fields
+                disabled
+              </p>
+            )}
+          </div>
+
+          {/* Tractor */}
+          <div>
+            <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
+              {t.tractor} {t.optionalLabel}
+            </Label>
+            <Select value={tractorId} onValueChange={setTractorId}>
+              <SelectTrigger
+                className="bg-white dark:bg-gray-900"
+                data-ocid="transactions.tractor.select"
+              >
+                <SelectValue placeholder={t.selectTractor} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">{t.emptySlot}</SelectItem>
+                {tractors.map((tr) => (
+                  <SelectItem key={tr.id.toString()} value={tr.id.toString()}>
+                    {tr.name} ({tr.model})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Driver */}
+          <div>
+            <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
+              {t.drivers} {t.optionalLabel}
+            </Label>
+            <Select value={driverId} onValueChange={setDriverId}>
+              <SelectTrigger
+                className="bg-white dark:bg-gray-900"
+                data-ocid="transactions.driver.select"
+              >
+                <SelectValue placeholder={t.selectDriver} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">{t.emptySlot}</SelectItem>
+                {drivers.map((dr) => (
+                  <SelectItem key={dr.id.toString()} value={dr.id.toString()}>
+                    {dr.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Start/End Time Entries */}
+          <div>
+            <Label className="text-sm text-gray-700 dark:text-gray-300 mb-2 block">
+              {(t as any).timeEntries || "Start/End Time"}
+            </Label>
+            <div className="space-y-2">
+              {timeEntries.map((entry) => {
+                const entryMin = calcEntryMinutes(
+                  entry.startTime,
+                  entry.endTime,
+                );
+                const entryH = Math.floor(entryMin / 60);
+                const entryM = entryMin % 60;
+                return (
+                  <div
+                    key={entry.id}
+                    className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 rounded-lg p-2"
+                  >
+                    <div className="flex-1">
+                      <Label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
+                        {t.startTime}
+                      </Label>
+                      <Input
+                        type="time"
+                        value={entry.startTime}
+                        onChange={(e) => {
+                          const updated = timeEntries.map((en) =>
+                            en.id === entry.id
+                              ? { ...en, startTime: e.target.value }
+                              : en,
+                          );
+                          setTimeEntries(updated);
+                        }}
+                        disabled={isFixedPrice}
+                        className={
+                          isFixedPrice
+                            ? "bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
+                            : "bg-white dark:bg-gray-900"
+                        }
+                        data-ocid="transactions.time_entry_start.input"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <Label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
+                        {t.endTime}
+                      </Label>
+                      <Input
+                        type="time"
+                        value={entry.endTime}
+                        onChange={(e) => {
+                          const updated = timeEntries.map((en) =>
+                            en.id === entry.id
+                              ? { ...en, endTime: e.target.value }
+                              : en,
+                          );
+                          setTimeEntries(updated);
+                        }}
+                        disabled={isFixedPrice}
+                        className={
+                          isFixedPrice
+                            ? "bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
+                            : "bg-white dark:bg-gray-900"
+                        }
+                        data-ocid="transactions.time_entry_end.input"
+                      />
+                    </div>
+                    {entryMin > 0 && (
+                      <div className="text-xs text-green-600 dark:text-green-400 font-medium whitespace-nowrap pt-4">
+                        {entryH > 0 ? `${entryH}h ` : ""}
+                        {entryM > 0 ? `${entryM}m` : ""}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setTimeEntries(
+                          timeEntries.filter((en) => en.id !== entry.id),
+                        )
+                      }
+                      disabled={isFixedPrice}
+                      className="pt-4 text-red-400 hover:text-red-600 disabled:opacity-30"
+                      aria-label="Remove time entry"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                );
+              })}
+              {timeEntries.length > 1 &&
+                (() => {
+                  const totalMin = timeEntries.reduce(
+                    (sum, e) => sum + calcEntryMinutes(e.startTime, e.endTime),
+                    0,
+                  );
+                  const tH = Math.floor(totalMin / 60);
+                  const tM = totalMin % 60;
+                  return totalMin > 0 ? (
+                    <div className="text-sm font-bold text-green-600 dark:text-green-400 text-right pr-2">
+                      {(t as any).totalTime || "Total"}:{" "}
+                      {tH > 0 ? `${tH}h ` : ""}
+                      {tM > 0 ? `${tM}m` : ""}
+                    </div>
+                  ) : null;
+                })()}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setTimeEntries([
+                    ...timeEntries,
+                    { id: Date.now().toString(), startTime: "", endTime: "" },
+                  ])
+                }
+                disabled={isFixedPrice}
+                className="w-full border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950 dark:text-green-400 dark:border-green-700"
+              >
+                <Plus size={14} className="mr-1" />
+                {(t as any).addTime || "Add Time"}
+              </Button>
+            </div>
+          </div>
+
+          {/* Hours & Minutes */}
+          <div>
+            <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
+              {t.workTime}
+            </Label>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">
+                  {t.hours}
+                </Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={isFixedPrice ? 0 : hours}
+                  onChange={(e) =>
+                    !isFixedPrice && setHours(Number(e.target.value))
+                  }
+                  disabled={isFixedPrice}
+                  className={
+                    isFixedPrice
+                      ? "bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed"
+                      : "bg-white dark:bg-gray-900"
+                  }
+                  data-ocid="transactions.hours.input"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">
+                  {t.minutesLabel}
+                </Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={59}
+                  value={isFixedPrice ? 0 : minutes}
+                  onChange={(e) =>
+                    !isFixedPrice && setMinutes(Number(e.target.value))
+                  }
+                  disabled={isFixedPrice}
+                  className={
+                    isFixedPrice
+                      ? "bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed"
+                      : "bg-white dark:bg-gray-900"
+                  }
+                  data-ocid="transactions.minutes.input"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Total Amount */}
+          <div>
+            <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
+              {t.totalAmountLabel}
             </Label>
             <Input
               type="number"
-              value={receivedAmount}
-              onChange={(e) => setReceivedAmount(e.target.value)}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
               placeholder="0"
-              className="bg-white dark:bg-gray-900 border-2 border-blue-200 focus:border-blue-400"
-              data-ocid="transactions.received_amount.input"
+              className="bg-white dark:bg-gray-900"
+              data-ocid="transactions.amount.input"
             />
           </div>
-        )}
 
-        {/* Balance Due */}
-        {amount && receivedAmount && (
-          <div
-            className={`rounded-xl px-4 py-3 text-center ${
-              netAmount - Number(receivedAmount) <= 0
-                ? "bg-green-50 dark:bg-green-900/30"
-                : "bg-red-50"
-            }`}
-          >
-            <span className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
-              {t.balanceDueLabel}:{" "}
-            </span>
-            <span
-              className={`text-xl font-bold ${
+          {/* Payment Method */}
+          <div>
+            <Label className="text-sm text-gray-700 dark:text-gray-300 mb-2 block">
+              {t.paymentMethodLabel}
+            </Label>
+            <div className="grid grid-cols-3 gap-2">
+              {(
+                [
+                  { val: PaymentMethod.cash, label: t.cashToggle },
+                  { val: PaymentMethod.upi, label: "📱 UPI" },
+                  { val: PaymentMethod.split, label: `📊 ${t.split}` },
+                ] as const
+              ).map(({ val, label }) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setPaymentMethod(val)}
+                  className={`py-2.5 rounded-xl text-sm font-semibold transition-all border-2 ${
+                    paymentMethod === val
+                      ? "bg-green-600 text-white border-green-600"
+                      : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-700"
+                  }`}
+                  data-ocid={`transactions.${val}.toggle`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Split Payment Fields */}
+            {paymentMethod === PaymentMethod.split && (
+              <div className="mt-3 bg-blue-50 border border-blue-200 rounded-xl p-3 flex flex-col gap-3">
+                <p className="text-xs text-blue-700 font-semibold">
+                  {t.splitPaymentTitle}
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500 mb-1 block">
+                      {t.splitCashLabel}
+                    </Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={splitCash}
+                      onChange={(e) => setSplitCash(e.target.value)}
+                      placeholder="0"
+                      className="bg-white dark:bg-gray-900"
+                      data-ocid="transactions.split_cash.input"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500 mb-1 block">
+                      {t.splitUpiLabel}
+                    </Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={splitUpi}
+                      onChange={(e) => setSplitUpi(e.target.value)}
+                      placeholder="0"
+                      className="bg-white dark:bg-gray-900"
+                      data-ocid="transactions.split_upi.input"
+                    />
+                  </div>
+                </div>
+                {(splitCash || splitUpi) && (
+                  <p className="text-xs text-blue-800 font-medium">
+                    {t.totalReceivedLabel}: ₹
+                    {(Number(splitCash) || 0) + (Number(splitUpi) || 0)}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Payment Received — shown for non-split; for cash only received+discount */}
+          {paymentMethod !== PaymentMethod.split && (
+            <div>
+              <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
+                {t.receivedAmountLabel} *
+              </Label>
+              <Input
+                type="number"
+                value={receivedAmount}
+                onChange={(e) => setReceivedAmount(e.target.value)}
+                placeholder="0"
+                className="bg-white dark:bg-gray-900 border-2 border-blue-200 focus:border-blue-400"
+                data-ocid="transactions.received_amount.input"
+              />
+            </div>
+          )}
+
+          {/* Balance Due */}
+          {amount && receivedAmount && (
+            <div
+              className={`rounded-xl px-4 py-3 text-center ${
                 netAmount - Number(receivedAmount) <= 0
-                  ? "text-green-700"
-                  : "text-red-600"
+                  ? "bg-green-50 dark:bg-green-900/30"
+                  : "bg-red-50"
               }`}
             >
-              ₹{balanceDue}
-            </span>
+              <span className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                {t.balanceDueLabel}:{" "}
+              </span>
+              <span
+                className={`text-xl font-bold ${
+                  netAmount - Number(receivedAmount) <= 0
+                    ? "text-green-700"
+                    : "text-red-600"
+                }`}
+              >
+                ₹{balanceDue}
+              </span>
+            </div>
+          )}
+
+          {/* Discount */}
+          <div>
+            <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
+              {t.discountLabel}
+            </Label>
+            <Input
+              type="number"
+              value={discount}
+              onChange={(e) => setDiscount(e.target.value)}
+              placeholder="0"
+              className="bg-white dark:bg-gray-900"
+              data-ocid="transactions.discount.input"
+            />
           </div>
-        )}
 
-        {/* Discount */}
-        <div>
-          <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
-            {t.discountLabel}
-          </Label>
-          <Input
-            type="number"
-            value={discount}
-            onChange={(e) => setDiscount(e.target.value)}
-            placeholder="0"
-            className="bg-white dark:bg-gray-900"
-            data-ocid="transactions.discount.input"
-          />
-        </div>
+          {/* Photo */}
+          <div>
+            <button
+              type="button"
+              className="flex items-center gap-2 w-full border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl py-3 px-4 text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:border-gray-400 transition-colors bg-white dark:bg-gray-900"
+              data-ocid="transactions.photo.upload_button"
+            >
+              <Camera className="w-4 h-4" />
+              {t.photoButtonLabel}
+            </button>
+          </div>
 
-        {/* Photo */}
-        <div>
-          <button
-            type="button"
-            className="flex items-center gap-2 w-full border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl py-3 px-4 text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:border-gray-400 transition-colors bg-white dark:bg-gray-900"
-            data-ocid="transactions.photo.upload_button"
+          {/* Save hint when blocked */}
+          {isSaveDisabled && !saving && !savedOnce && txType !== "credit" && (
+            <p className="text-xs text-orange-600 text-center">
+              ⚠️ {t.receivedAmountLabel} fill karo to Save active hoga
+            </p>
+          )}
+
+          <Button
+            onClick={handleSave}
+            disabled={isSaveDisabled}
+            className={`w-full py-4 text-base font-bold rounded-2xl mt-2 text-white ${
+              savedOnce
+                ? "bg-green-400 cursor-not-allowed"
+                : isSaveDisabled
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-green-600 hover:bg-green-700"
+            }`}
+            data-ocid="transactions.save.submit_button"
           >
-            <Camera className="w-4 h-4" />
-            {t.photoButtonLabel}
-          </button>
+            {saving
+              ? t.savingText
+              : savedOnce
+                ? `✓ ${t.transactionSavedMsg}`
+                : t.saveButton}
+          </Button>
+          <div className="h-4" />
         </div>
 
-        {/* Save hint when blocked */}
-        {isSaveDisabled && !saving && !savedOnce && txType !== "credit" && (
-          <p className="text-xs text-orange-600 text-center">
-            ⚠️ {t.receivedAmountLabel} fill karo to Save active hoga
-          </p>
+        {/* Invoice Modal */}
+        {showInvoice && invoiceData && (
+          <InvoiceModal
+            data={invoiceData}
+            onClose={() => setShowInvoice(false)}
+            onNew={() => {
+              setShowInvoice(false);
+              resetForm();
+            }}
+          />
+        )}
+        {/* Voice Input Button - only when form is in new entry mode */}
+        {!savedOnce && (
+          <VoiceInputButton
+            isListening={isListening}
+            isSupported={voiceSupported}
+            onStart={() => startListening("hi-IN")}
+            onStop={stopListening}
+            label="Voice"
+          />
         )}
 
-        <Button
-          onClick={handleSave}
-          disabled={isSaveDisabled}
-          className={`w-full py-4 text-base font-bold rounded-2xl mt-2 text-white ${
-            savedOnce
-              ? "bg-green-400 cursor-not-allowed"
-              : isSaveDisabled
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-green-600 hover:bg-green-700"
-          }`}
-          data-ocid="transactions.save.submit_button"
-        >
-          {saving
-            ? t.savingText
-            : savedOnce
-              ? `✓ ${t.transactionSavedMsg}`
-              : t.saveButton}
-        </Button>
-        <div className="h-4" />
-      </div>
-
-      {/* Invoice Modal */}
-      {showInvoice && invoiceData && (
-        <InvoiceModal
-          data={invoiceData}
-          onClose={() => setShowInvoice(false)}
-          onNew={() => {
-            setShowInvoice(false);
-            resetForm();
-          }}
-        />
-      )}
-      {/* Voice Input Button - only when form is in new entry mode */}
-      {!savedOnce && (
-        <VoiceInputButton
-          isListening={isListening}
-          isSupported={voiceSupported}
-          onStart={() => startListening("hi-IN")}
-          onStop={stopListening}
-          label="Voice"
-        />
-      )}
-
-      {/* Voice Confirmation Dialog */}
-      <Dialog open={showVoiceConfirm} onOpenChange={setShowVoiceConfirm}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>🎙 Voice Input Applied</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2 text-sm">
-            {voiceParsed && (
-              <>
-                {voiceParsed.partyName && (
-                  <p>
-                    👤 <strong>Party:</strong> {voiceParsed.partyName}
-                  </p>
-                )}
-                {voiceParsed.serviceType && (
-                  <p>
-                    🌾 <strong>Service:</strong> {voiceParsed.serviceType}
-                  </p>
-                )}
-                {voiceParsed.hours !== undefined && (
-                  <p>
-                    ⏱ <strong>Hours:</strong> {voiceParsed.hours}h{" "}
-                    {voiceParsed.minutes ?? 0}m
-                  </p>
-                )}
-                {voiceParsed.amount !== undefined && (
-                  <p>
-                    💰 <strong>Amount:</strong> ₹{voiceParsed.amount}
-                  </p>
-                )}
-                {voiceParsed.paymentType && (
-                  <p>
-                    💳 <strong>Payment:</strong>{" "}
-                    {voiceParsed.paymentType.toUpperCase()}
-                  </p>
-                )}
-                {voiceParsed.notes && (
-                  <p>
-                    📝 <strong>Notes:</strong> {voiceParsed.notes}
-                  </p>
-                )}
-                {!voiceParsed.partyName &&
-                  !voiceParsed.serviceType &&
-                  !voiceParsed.hours &&
-                  !voiceParsed.amount && (
-                    <p className="text-gray-400 italic">
-                      Could not detect fields. Please fill manually.
+        {/* Voice Confirmation Dialog */}
+        <Dialog open={showVoiceConfirm} onOpenChange={setShowVoiceConfirm}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>🎙 Voice Input Applied</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2 text-sm">
+              {voiceParsed && (
+                <>
+                  {voiceParsed.partyName && (
+                    <p>
+                      👤 <strong>Party:</strong> {voiceParsed.partyName}
                     </p>
                   )}
-              </>
-            )}
-            <p className="text-xs text-gray-500 pt-1">
-              Review the filled fields and make any changes before saving.
-            </p>
+                  {voiceParsed.serviceType && (
+                    <p>
+                      🌾 <strong>Service:</strong> {voiceParsed.serviceType}
+                    </p>
+                  )}
+                  {voiceParsed.hours !== undefined && (
+                    <p>
+                      ⏱ <strong>Hours:</strong> {voiceParsed.hours}h{" "}
+                      {voiceParsed.minutes ?? 0}m
+                    </p>
+                  )}
+                  {voiceParsed.amount !== undefined && (
+                    <p>
+                      💰 <strong>Amount:</strong> ₹{voiceParsed.amount}
+                    </p>
+                  )}
+                  {voiceParsed.paymentType && (
+                    <p>
+                      💳 <strong>Payment:</strong>{" "}
+                      {voiceParsed.paymentType.toUpperCase()}
+                    </p>
+                  )}
+                  {voiceParsed.notes && (
+                    <p>
+                      📝 <strong>Notes:</strong> {voiceParsed.notes}
+                    </p>
+                  )}
+                  {!voiceParsed.partyName &&
+                    !voiceParsed.serviceType &&
+                    !voiceParsed.hours &&
+                    !voiceParsed.amount && (
+                      <p className="text-gray-400 italic">
+                        Could not detect fields. Please fill manually.
+                      </p>
+                    )}
+                </>
+              )}
+              <p className="text-xs text-gray-500 pt-1">
+                Review the filled fields and make any changes before saving.
+              </p>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowVoiceConfirm(false)}
+                className="flex-1"
+                data-ocid="voice.dialog.cancel_button"
+              >
+                Edit
+              </Button>
+              <Button
+                onClick={() => setShowVoiceConfirm(false)}
+                className="flex-1 bg-green-700 hover:bg-green-800"
+                data-ocid="voice.dialog.confirm_button"
+              >
+                Confirm
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        {licenceExpired && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-red-600/95">
+            <div className="text-center p-8">
+              <p className="text-4xl font-bold text-white mb-6">
+                Your Licence Expired
+              </p>
+              <button
+                type="button"
+                onClick={() => setLicenceExpired(false)}
+                className="px-6 py-3 bg-white text-red-600 font-bold rounded-lg text-lg"
+              >
+                Close
+              </button>
+            </div>
           </div>
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowVoiceConfirm(false)}
-              className="flex-1"
-              data-ocid="voice.dialog.cancel_button"
-            >
-              Edit
-            </Button>
-            <Button
-              onClick={() => setShowVoiceConfirm(false)}
-              className="flex-1 bg-green-700 hover:bg-green-800"
-              data-ocid="voice.dialog.confirm_button"
-            >
-              Confirm
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+        )}
+      </div>
+    </>
   );
 }

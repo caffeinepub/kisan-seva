@@ -10,7 +10,7 @@ export default function SplashScreen({ onDone }: { onDone: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-green-700 to-green-900 gap-6">
       {/* Exact same logo as LoginPage */}
-      <div className="flex items-center justify-center w-20 h-20 bg-green-700 rounded-full shadow-lg">
+      <div className="flex items-center justify-center w-20 h-20 bg-green-700 rounded-full shadow-lg ring-4 ring-white">
         <Tractor className="w-12 h-12 text-white" />
       </div>
       <div className="flex flex-col items-center gap-2">

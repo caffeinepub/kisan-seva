@@ -44,6 +44,7 @@ export default function PaymentInPage({ actor, onOpenSidebar }: Props) {
   const [splitUpi, setSplitUpi] = useState("");
   const [dateTime, setDateTime] = useState(getCurrentDateTime());
   const [saving, setSaving] = useState(false);
+  const [licenceExpired, setLicenceExpired] = useState(false);
 
   useEffect(() => {
     actor.getAllParties().then((fetched) => {
@@ -114,6 +115,28 @@ export default function PaymentInPage({ actor, onOpenSidebar }: Props) {
   const selectedDue = selectedParty ? getPartyDue(selectedParty) : null;
 
   const handleSave = () => {
+    // Check if user is blocked (licence expired)
+    const blockedUsers: string[] = (() => {
+      try {
+        return JSON.parse(localStorage.getItem("ktp_blocked_users") || "[]");
+      } catch {
+        return [];
+      }
+    })();
+    const currentMobile = (() => {
+      try {
+        return (
+          JSON.parse(localStorage.getItem("ktp_session") || "null")?.user
+            ?.mobile || ""
+        );
+      } catch {
+        return "";
+      }
+    })();
+    if (blockedUsers.includes(currentMobile)) {
+      setLicenceExpired(true);
+      return;
+    }
     if (!selectedParty) {
       toast.error((t as any).selectPartyFirst);
       return;
@@ -243,328 +266,348 @@ export default function PaymentInPage({ actor, onOpenSidebar }: Props) {
     : "bg-white border-gray-300 text-gray-900";
 
   return (
-    <div className={`min-h-screen flex flex-col ${darkBg}`}>
-      {/* Header */}
-      <header
-        className={`flex items-center gap-3 px-4 py-3 shadow-sm sticky top-0 z-10 ${
-          darkMode ? "bg-gray-800" : "bg-green-600"
-        }`}
-      >
-        <button
-          type="button"
-          onClick={goBack}
-          className="text-white p-1"
-          data-ocid="payment_in.link"
+    <>
+      <div className={`min-h-screen flex flex-col ${darkBg}`}>
+        {/* Header */}
+        <header
+          className={`flex items-center gap-3 px-4 py-3 shadow-sm sticky top-0 z-10 ${
+            darkMode ? "bg-gray-800" : "bg-green-600"
+          }`}
         >
-          <ArrowLeft size={22} />
-        </button>
-        <h1 className="text-white font-semibold text-lg flex-1">
-          {(t as any).paymentReceive}
-        </h1>
-        {onOpenSidebar && (
           <button
             type="button"
-            onClick={onOpenSidebar}
+            onClick={goBack}
             className="text-white p-1"
+            data-ocid="payment_in.link"
           >
-            <Menu size={22} />
+            <ArrowLeft size={22} />
           </button>
-        )}
-      </header>
-
-      {/* Form */}
-      <main className="flex-1 p-4 space-y-4 overflow-y-auto pb-32">
-        {/* Customer search */}
-        <div className={`rounded-xl border p-4 space-y-2 ${cardBg}`}>
-          <Label className="font-medium">{(t as any).customerName} *</Label>
-          <div className="relative">
-            <Input
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setShowDropdown(true);
-                if (!e.target.value) setSelectedParty(null);
-              }}
-              onFocus={() => setShowDropdown(true)}
-              onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-              placeholder={(t as any).searchParty}
-              className={inputCls}
-              data-ocid="payment_in.search_input"
-            />
-            {showDropdown &&
-              (search ? filtered.length > 0 : parties.length > 0) && (
-                <div
-                  className={`absolute top-full left-0 right-0 z-20 border rounded-lg shadow-lg max-h-48 overflow-y-auto mt-1 ${
-                    darkMode
-                      ? "bg-gray-800 border-gray-600"
-                      : "bg-white border-gray-200"
-                  }`}
-                >
-                  {(search ? filtered : parties.slice(0, 20)).map((p) => {
-                    const due = getPartyDue(p);
-                    return (
-                      <div
-                        key={p.id.toString()}
-                        className={`px-3 py-2 cursor-pointer flex justify-between items-center ${
-                          darkMode ? "hover:bg-gray-700" : "hover:bg-green-50"
-                        }`}
-                        onMouseDown={() => handleSelectParty(p)}
-                      >
-                        <span className="font-medium">{p.name}</span>
-                        {due > 0 ? (
-                          <span className="text-xs text-red-500 font-semibold">
-                            {(t as any).due} ₹{due}
-                          </span>
-                        ) : due < 0 ? (
-                          <span className="text-xs text-green-500 font-semibold">
-                            {(t as any).advance} ₹{Math.abs(due)}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-gray-400">₹0</span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-          </div>
-          {selectedParty && (
-            <p className="text-xs text-green-600 dark:text-green-400">
-              ✓ {selectedParty.name}{" "}
-              {selectedParty.phone ? `(${selectedParty.phone})` : ""}
-            </p>
+          <h1 className="text-white font-semibold text-lg flex-1">
+            {(t as any).paymentReceive}
+          </h1>
+          {onOpenSidebar && (
+            <button
+              type="button"
+              onClick={onOpenSidebar}
+              className="text-white p-1"
+            >
+              <Menu size={22} />
+            </button>
           )}
-        </div>
+        </header>
 
-        {/* Balance info card - shown when party is selected */}
-        {selectedParty && selectedDue !== null && (
-          <div
-            className={`rounded-xl border-2 p-4 ${
-              selectedDue > 0
-                ? darkMode
-                  ? "bg-red-900/20 border-red-700"
-                  : "bg-red-50 border-red-200"
-                : selectedDue < 0
-                  ? darkMode
-                    ? "bg-green-900/20 border-green-700"
-                    : "bg-emerald-50 border-emerald-200"
-                  : darkMode
-                    ? "bg-gray-800 border-gray-600"
-                    : "bg-gray-50 border-gray-200"
-            }`}
-            data-ocid="payment_in.panel"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {selectedDue > 0 ? (
+        {/* Form */}
+        <main className="flex-1 p-4 space-y-4 overflow-y-auto pb-32">
+          {/* Customer search */}
+          <div className={`rounded-xl border p-4 space-y-2 ${cardBg}`}>
+            <Label className="font-medium">{(t as any).customerName} *</Label>
+            <div className="relative">
+              <Input
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setShowDropdown(true);
+                  if (!e.target.value) setSelectedParty(null);
+                }}
+                onFocus={() => setShowDropdown(true)}
+                onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                placeholder={(t as any).searchParty}
+                className={inputCls}
+                data-ocid="payment_in.search_input"
+              />
+              {showDropdown &&
+                (search ? filtered.length > 0 : parties.length > 0) && (
                   <div
-                    className={`p-2 rounded-lg ${
-                      darkMode ? "bg-red-800/50" : "bg-red-100"
+                    className={`absolute top-full left-0 right-0 z-20 border rounded-lg shadow-lg max-h-48 overflow-y-auto mt-1 ${
+                      darkMode
+                        ? "bg-gray-800 border-gray-600"
+                        : "bg-white border-gray-200"
                     }`}
                   >
-                    <TrendingDown size={18} className="text-red-500" />
-                  </div>
-                ) : selectedDue < 0 ? (
-                  <div
-                    className={`p-2 rounded-lg ${
-                      darkMode ? "bg-green-800/50" : "bg-emerald-100"
-                    }`}
-                  >
-                    <TrendingUp size={18} className="text-emerald-500" />
-                  </div>
-                ) : (
-                  <div
-                    className={`p-2 rounded-lg ${
-                      darkMode ? "bg-gray-700" : "bg-gray-100"
-                    }`}
-                  >
-                    <Minus size={18} className="text-gray-400" />
+                    {(search ? filtered : parties.slice(0, 20)).map((p) => {
+                      const due = getPartyDue(p);
+                      return (
+                        <div
+                          key={p.id.toString()}
+                          className={`px-3 py-2 cursor-pointer flex justify-between items-center ${
+                            darkMode ? "hover:bg-gray-700" : "hover:bg-green-50"
+                          }`}
+                          onMouseDown={() => handleSelectParty(p)}
+                        >
+                          <span className="font-medium">{p.name}</span>
+                          {due > 0 ? (
+                            <span className="text-xs text-red-500 font-semibold">
+                              {(t as any).due} ₹{due}
+                            </span>
+                          ) : due < 0 ? (
+                            <span className="text-xs text-green-500 font-semibold">
+                              {(t as any).advance} ₹{Math.abs(due)}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-400">₹0</span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
-                <div>
-                  <p
-                    className={`text-xs font-medium ${
-                      selectedDue > 0
-                        ? "text-red-500"
-                        : selectedDue < 0
-                          ? "text-emerald-600"
-                          : darkMode
-                            ? "text-gray-400"
-                            : "text-gray-500"
-                    }`}
-                  >
-                    {selectedDue > 0
-                      ? (t as any).dueAmount
-                      : selectedDue < 0
-                        ? (t as any).advanceBalance
-                        : (t as any).noBalance}
-                  </p>
-                  <p
-                    className={`text-xl font-bold mt-0.5 ${
-                      selectedDue > 0
-                        ? "text-red-600"
-                        : selectedDue < 0
-                          ? "text-emerald-600"
-                          : darkMode
-                            ? "text-gray-400"
-                            : "text-gray-500"
-                    }`}
-                  >
-                    {selectedDue === 0
-                      ? "₹0"
-                      : selectedDue > 0
-                        ? `₹${selectedDue}`
-                        : `₹${Math.abs(selectedDue)}`}
-                  </p>
-                </div>
-              </div>
-              <div
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold ${
-                  selectedDue > 0
-                    ? darkMode
-                      ? "bg-red-800/50 text-red-300"
-                      : "bg-red-100 text-red-600"
-                    : selectedDue < 0
-                      ? darkMode
-                        ? "bg-green-800/50 text-green-300"
-                        : "bg-emerald-100 text-emerald-700"
-                      : darkMode
-                        ? "bg-gray-700 text-gray-400"
-                        : "bg-gray-100 text-gray-500"
-                }`}
-              >
-                {selectedDue > 0
-                  ? (t as any).due
+            </div>
+            {selectedParty && (
+              <p className="text-xs text-green-600 dark:text-green-400">
+                ✓ {selectedParty.name}{" "}
+                {selectedParty.phone ? `(${selectedParty.phone})` : ""}
+              </p>
+            )}
+          </div>
+
+          {/* Balance info card - shown when party is selected */}
+          {selectedParty && selectedDue !== null && (
+            <div
+              className={`rounded-xl border-2 p-4 ${
+                selectedDue > 0
+                  ? darkMode
+                    ? "bg-red-900/20 border-red-700"
+                    : "bg-red-50 border-red-200"
                   : selectedDue < 0
-                    ? (t as any).advance
-                    : "—"}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Payment Method */}
-        <div className={`rounded-xl border p-4 space-y-3 ${cardBg}`}>
-          <Label className="font-medium">{(t as any).paymentMethod}</Label>
-          <div className="flex gap-2">
-            {(["cash", "upi", "split"] as PayMethod[]).map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setPaymentMethod(m)}
-                className={`flex-1 py-2.5 rounded-xl font-semibold text-sm transition-all ${
-                  paymentMethod === m
-                    ? m === "cash"
-                      ? "bg-green-600 text-white shadow-md"
-                      : m === "upi"
-                        ? "bg-blue-600 text-white shadow-md"
-                        : "bg-purple-600 text-white shadow-md"
+                    ? darkMode
+                      ? "bg-green-900/20 border-green-700"
+                      : "bg-emerald-50 border-emerald-200"
                     : darkMode
-                      ? "bg-gray-700 text-gray-300 border border-gray-600"
-                      : "bg-gray-100 text-gray-600 border border-gray-200"
-                }`}
-                data-ocid="payment_in.toggle"
-              >
-                {m === "cash"
-                  ? `💵 ${(t as any).totalCash}`
-                  : m === "upi"
-                    ? "📱 UPI"
-                    : "🔀 Split"}
-              </button>
-            ))}
-          </div>
-
-          {/* Amount fields based on method */}
-          {paymentMethod === "split" ? (
-            <div className="space-y-2">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label className="text-xs text-gray-500">💵 Cash (₹)</Label>
-                  <Input
-                    type="number"
-                    value={splitCash}
-                    onChange={(e) => setSplitCash(e.target.value)}
-                    placeholder="0"
-                    className={inputCls}
-                    data-ocid="payment_in.input"
-                  />
+                      ? "bg-gray-800 border-gray-600"
+                      : "bg-gray-50 border-gray-200"
+              }`}
+              data-ocid="payment_in.panel"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {selectedDue > 0 ? (
+                    <div
+                      className={`p-2 rounded-lg ${
+                        darkMode ? "bg-red-800/50" : "bg-red-100"
+                      }`}
+                    >
+                      <TrendingDown size={18} className="text-red-500" />
+                    </div>
+                  ) : selectedDue < 0 ? (
+                    <div
+                      className={`p-2 rounded-lg ${
+                        darkMode ? "bg-green-800/50" : "bg-emerald-100"
+                      }`}
+                    >
+                      <TrendingUp size={18} className="text-emerald-500" />
+                    </div>
+                  ) : (
+                    <div
+                      className={`p-2 rounded-lg ${
+                        darkMode ? "bg-gray-700" : "bg-gray-100"
+                      }`}
+                    >
+                      <Minus size={18} className="text-gray-400" />
+                    </div>
+                  )}
+                  <div>
+                    <p
+                      className={`text-xs font-medium ${
+                        selectedDue > 0
+                          ? "text-red-500"
+                          : selectedDue < 0
+                            ? "text-emerald-600"
+                            : darkMode
+                              ? "text-gray-400"
+                              : "text-gray-500"
+                      }`}
+                    >
+                      {selectedDue > 0
+                        ? (t as any).dueAmount
+                        : selectedDue < 0
+                          ? (t as any).advanceBalance
+                          : (t as any).noBalance}
+                    </p>
+                    <p
+                      className={`text-xl font-bold mt-0.5 ${
+                        selectedDue > 0
+                          ? "text-red-600"
+                          : selectedDue < 0
+                            ? "text-emerald-600"
+                            : darkMode
+                              ? "text-gray-400"
+                              : "text-gray-500"
+                      }`}
+                    >
+                      {selectedDue === 0
+                        ? "₹0"
+                        : selectedDue > 0
+                          ? `₹${selectedDue}`
+                          : `₹${Math.abs(selectedDue)}`}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <Label className="text-xs text-gray-500">📱 UPI (₹)</Label>
-                  <Input
-                    type="number"
-                    value={splitUpi}
-                    onChange={(e) => setSplitUpi(e.target.value)}
-                    placeholder="0"
-                    className={inputCls}
-                    data-ocid="payment_in.input"
-                  />
+                <div
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold ${
+                    selectedDue > 0
+                      ? darkMode
+                        ? "bg-red-800/50 text-red-300"
+                        : "bg-red-100 text-red-600"
+                      : selectedDue < 0
+                        ? darkMode
+                          ? "bg-green-800/50 text-green-300"
+                          : "bg-emerald-100 text-emerald-700"
+                        : darkMode
+                          ? "bg-gray-700 text-gray-400"
+                          : "bg-gray-100 text-gray-500"
+                  }`}
+                >
+                  {selectedDue > 0
+                    ? (t as any).due
+                    : selectedDue < 0
+                      ? (t as any).advance
+                      : "—"}
                 </div>
               </div>
-              {splitTotal > 0 && (
-                <p className="text-xs text-green-600 font-medium">
-                  Total: ₹{splitTotal}
-                </p>
-              )}
-            </div>
-          ) : (
-            <div>
-              <Label className="text-xs text-gray-500">
-                {(t as any).paymentAmount} *
-              </Label>
-              <Input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="₹ 0"
-                className={inputCls}
-                data-ocid="payment_in.input"
-              />
             </div>
           )}
-        </div>
 
-        {/* Discount */}
-        <div className={`rounded-xl border p-4 space-y-2 ${cardBg}`}>
-          <Label className="font-medium">{(t as any).discountLabel}</Label>
-          <Input
-            type="number"
-            value={discount}
-            onChange={(e) => setDiscount(e.target.value)}
-            placeholder="₹ 0"
-            className={inputCls}
-            data-ocid="payment_in.input"
-          />
-        </div>
+          {/* Payment Method */}
+          <div className={`rounded-xl border p-4 space-y-3 ${cardBg}`}>
+            <Label className="font-medium">{(t as any).paymentMethod}</Label>
+            <div className="flex gap-2">
+              {(["cash", "upi", "split"] as PayMethod[]).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setPaymentMethod(m)}
+                  className={`flex-1 py-2.5 rounded-xl font-semibold text-sm transition-all ${
+                    paymentMethod === m
+                      ? m === "cash"
+                        ? "bg-green-600 text-white shadow-md"
+                        : m === "upi"
+                          ? "bg-blue-600 text-white shadow-md"
+                          : "bg-purple-600 text-white shadow-md"
+                      : darkMode
+                        ? "bg-gray-700 text-gray-300 border border-gray-600"
+                        : "bg-gray-100 text-gray-600 border border-gray-200"
+                  }`}
+                  data-ocid="payment_in.toggle"
+                >
+                  {m === "cash"
+                    ? `💵 ${(t as any).totalCash}`
+                    : m === "upi"
+                      ? "📱 UPI"
+                      : "🔀 Split"}
+                </button>
+              ))}
+            </div>
 
-        {/* Date & Time */}
-        <div className={`rounded-xl border p-4 space-y-2 ${cardBg}`}>
-          <Label className="font-medium">{(t as any).dateTime}</Label>
-          <Input
-            type="datetime-local"
-            value={dateTime}
-            onChange={(e) => setDateTime(e.target.value)}
-            className={inputCls}
-            data-ocid="payment_in.input"
-          />
-        </div>
-      </main>
+            {/* Amount fields based on method */}
+            {paymentMethod === "split" ? (
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs text-gray-500">💵 Cash (₹)</Label>
+                    <Input
+                      type="number"
+                      value={splitCash}
+                      onChange={(e) => setSplitCash(e.target.value)}
+                      placeholder="0"
+                      className={inputCls}
+                      data-ocid="payment_in.input"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-500">📱 UPI (₹)</Label>
+                    <Input
+                      type="number"
+                      value={splitUpi}
+                      onChange={(e) => setSplitUpi(e.target.value)}
+                      placeholder="0"
+                      className={inputCls}
+                      data-ocid="payment_in.input"
+                    />
+                  </div>
+                </div>
+                {splitTotal > 0 && (
+                  <p className="text-xs text-green-600 font-medium">
+                    Total: ₹{splitTotal}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div>
+                <Label className="text-xs text-gray-500">
+                  {(t as any).paymentAmount} *
+                </Label>
+                <Input
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="₹ 0"
+                  className={inputCls}
+                  data-ocid="payment_in.input"
+                />
+              </div>
+            )}
+          </div>
 
-      {/* Save Button */}
-      <div
-        className={`fixed bottom-0 left-0 right-0 p-4 border-t ${
-          darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
-        }`}
-      >
-        <Button
-          onClick={handleSave}
-          disabled={saving}
-          className="w-full py-4 text-lg font-bold bg-green-600 hover:bg-green-700 text-white rounded-xl"
-          data-ocid="payment_in.submit_button"
+          {/* Discount */}
+          <div className={`rounded-xl border p-4 space-y-2 ${cardBg}`}>
+            <Label className="font-medium">{(t as any).discountLabel}</Label>
+            <Input
+              type="number"
+              value={discount}
+              onChange={(e) => setDiscount(e.target.value)}
+              placeholder="₹ 0"
+              className={inputCls}
+              data-ocid="payment_in.input"
+            />
+          </div>
+
+          {/* Date & Time */}
+          <div className={`rounded-xl border p-4 space-y-2 ${cardBg}`}>
+            <Label className="font-medium">{(t as any).dateTime}</Label>
+            <Input
+              type="datetime-local"
+              value={dateTime}
+              onChange={(e) => setDateTime(e.target.value)}
+              className={inputCls}
+              data-ocid="payment_in.input"
+            />
+          </div>
+        </main>
+
+        {/* Save Button */}
+        <div
+          className={`fixed bottom-0 left-0 right-0 p-4 border-t ${
+            darkMode
+              ? "bg-gray-800 border-gray-700"
+              : "bg-white border-gray-200"
+          }`}
         >
-          {saving ? "..." : t.save}
-        </Button>
+          <Button
+            onClick={handleSave}
+            disabled={saving}
+            className="w-full py-4 text-lg font-bold bg-green-600 hover:bg-green-700 text-white rounded-xl"
+            data-ocid="payment_in.submit_button"
+          >
+            {saving ? "..." : t.save}
+          </Button>
+        </div>
       </div>
-    </div>
+      {licenceExpired && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-red-600/95">
+          <div className="text-center p-8">
+            <p className="text-4xl font-bold text-white mb-6">
+              Your Licence Expired
+            </p>
+            <button
+              type="button"
+              onClick={() => setLicenceExpired(false)}
+              className="px-6 py-3 bg-white text-red-600 font-bold rounded-lg text-lg"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

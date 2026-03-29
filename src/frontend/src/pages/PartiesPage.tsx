@@ -5,11 +5,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Menu, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useApp } from "../App";
+import { type SavedTransactionFull, useApp } from "../App";
 import type { Party, backendInterface } from "../backend";
 import { CASH_PARTY_ID } from "../lib/cashParty";
 
-type Props = { actor: backendInterface; onOpenSidebar?: () => void };
+type Props = {
+  actor: backendInterface;
+  onOpenSidebar?: () => void;
+  onEditTransaction?: (txn: SavedTransactionFull) => void;
+};
 
 interface SavedTx {
   id: string;
@@ -49,11 +53,15 @@ function PartyDetailView({
   onBack,
   onEdit,
   onDelete,
+  onEditTransaction,
+  onDeleteTransaction,
 }: {
   party: Party;
   onBack: () => void;
   onEdit: (party: Party) => void;
   onDelete: (partyId: bigint) => void;
+  onEditTransaction?: (txn: SavedTransactionFull) => void;
+  onDeleteTransaction?: (txnId: string) => void;
 }) {
   const { t } = useApp();
   const udharMap: Record<string, number> = JSON.parse(
@@ -306,6 +314,32 @@ function PartyDetailView({
                           Due: ₹{balance}
                         </div>
                       )}
+                      <div className="flex gap-1 mt-1 justify-end">
+                        {onEditTransaction && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onEditTransaction(
+                                tx as unknown as SavedTransactionFull,
+                              )
+                            }
+                            className="p-1.5 rounded text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                            data-ocid={`parties.transactions.edit_button.${i + 1}`}
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {onDeleteTransaction && (
+                          <button
+                            type="button"
+                            onClick={() => onDeleteTransaction(tx.id)}
+                            className="p-1.5 rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                            data-ocid={`parties.transactions.delete_button.${i + 1}`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -345,7 +379,11 @@ function PartyDetailView({
   );
 }
 
-export default function PartiesPage({ actor, onOpenSidebar }: Props) {
+export default function PartiesPage({
+  actor,
+  onOpenSidebar,
+  onEditTransaction,
+}: Props) {
   const { t, goBack } = useApp();
   const [parties, setParties] = useState<Party[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -421,6 +459,31 @@ export default function PartiesPage({ actor, onOpenSidebar }: Props) {
     setShowForm(true);
   };
 
+  const handleDeleteTransaction = (txnId: string) => {
+    const all: SavedTx[] = JSON.parse(
+      localStorage.getItem("ktp_saved_transactions") || "[]",
+    );
+    const txn = all.find((t) => t.id === txnId);
+    if (!txn) return;
+    // Reverse party balance
+    const udharMap: Record<string, number> = JSON.parse(
+      localStorage.getItem("ktp_party_udhar") || "{}",
+    );
+    const partyKey = txn.partyId;
+    const balance = Math.max(0, txn.amount - txn.receivedAmount - txn.discount);
+    if (udharMap[partyKey] && balance > 0) {
+      udharMap[partyKey] = Math.max(0, (udharMap[partyKey] || 0) - balance);
+      localStorage.setItem("ktp_party_udhar", JSON.stringify(udharMap));
+    }
+    const updated = all.filter((t) => t.id !== txnId);
+    localStorage.setItem("ktp_saved_transactions", JSON.stringify(updated));
+    toast.success("Transaction deleted");
+    // Refresh selected party
+    if (selectedParty) {
+      setSelectedParty({ ...selectedParty });
+    }
+  };
+
   if (selectedParty) {
     return (
       <PartyDetailView
@@ -428,6 +491,8 @@ export default function PartiesPage({ actor, onOpenSidebar }: Props) {
         onBack={() => setSelectedParty(null)}
         onEdit={handleEditFromDetail}
         onDelete={handleDelete}
+        onEditTransaction={onEditTransaction}
+        onDeleteTransaction={handleDeleteTransaction}
       />
     );
   }

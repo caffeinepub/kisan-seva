@@ -286,18 +286,18 @@ export default function AllTransactionsPage({
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-bold text-green-700 bg-green-50 dark:bg-green-900/30 px-2 py-0.5 rounded-full">
-                        #TXN-{payment.id.toString().padStart(4, "0")}
-                      </span>
                       <span
                         className={`text-xs font-semibold px-2 py-0.5 rounded-full ${methodColor(payment.method)}`}
                       >
                         {methodLabel(payment.method)}
                       </span>
                     </div>
-                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-0.5">
+                    <p className="text-base font-bold text-gray-800 dark:text-gray-200 mb-0.5">
                       {partyName}
                     </p>
+                    <span className="text-xs font-semibold text-green-700 bg-green-50 dark:bg-green-900/30 px-2 py-0.5 rounded-full inline-block mb-0.5">
+                      #TXN-{payment.id.toString().padStart(4, "0")}
+                    </span>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
                       {fmt12(payment.date)}
                     </p>

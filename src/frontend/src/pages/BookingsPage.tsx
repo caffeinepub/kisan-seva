@@ -66,6 +66,7 @@ export default function BookingsPage({
   const [form, setForm] = useState<SimpleForm>(emptyForm);
   const [editId, setEditId] = useState<bigint | null>(null);
   const [saving, setSaving] = useState(false);
+  const [licenceExpired, setLicenceExpired] = useState(false);
   const {
     isSupported: voiceSupported,
     isListening,
@@ -136,6 +137,28 @@ export default function BookingsPage({
   }, [transcript]);
 
   const handleSave = async () => {
+    // Check if user is blocked (licence expired)
+    const blockedUsers: string[] = (() => {
+      try {
+        return JSON.parse(localStorage.getItem("ktp_blocked_users") || "[]");
+      } catch {
+        return [];
+      }
+    })();
+    const currentMobile = (() => {
+      try {
+        return (
+          JSON.parse(localStorage.getItem("ktp_session") || "null")?.user
+            ?.mobile || ""
+        );
+      } catch {
+        return "";
+      }
+    })();
+    if (blockedUsers.includes(currentMobile)) {
+      setLicenceExpired(true);
+      return;
+    }
     if (!form.partyId || !form.serviceType) {
       toast.error(t.partyServiceRequired);
       return;
@@ -364,120 +387,138 @@ export default function BookingsPage({
   }
 
   return (
-    <div className="flex flex-col min-h-full bg-white dark:bg-gray-900">
-      <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={goBack}
-            className="p-1"
-            data-ocid="bookings.back.button"
-          >
-            <ArrowLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-          </button>
-          <button
-            type="button"
-            onClick={onOpenSidebar}
-            className="p-1"
-            data-ocid="bookings.menu.button"
-          >
-            <Menu className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-          </button>
-          <h1 className="font-bold text-lg text-gray-900 dark:text-gray-100">
-            {listOnly ? t.bookingList : t.bookings}
-          </h1>
-        </div>
-        {!listOnly && (
-          <button
-            type="button"
-            onClick={() => setShowForm(true)}
-            className="flex items-center gap-1 bg-green-700 text-white px-3 py-2 rounded-xl text-sm font-semibold"
-            data-ocid="bookings.add.primary_button"
-          >
-            <Plus className="w-4 h-4" /> {t.newBooking}
-          </button>
-        )}
-      </div>
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
-        {bookings.length === 0 && (
-          <p
-            className="text-gray-400 dark:text-gray-500 text-center py-12"
-            data-ocid="bookings.empty_state"
-          >
-            {t.noBookings}
-          </p>
-        )}
-        {bookings.map((b, idx) => (
-          <div
-            key={b.id.toString()}
-            className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-sm p-4"
-            data-ocid={`bookings.item.${idx + 1}`}
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="font-semibold text-gray-900 dark:text-gray-100">
-                  {getPartyName(b.partyId)}
-                </div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  {b.workType}
-                </div>
-                <div className="text-sm text-gray-400 dark:text-gray-500">
-                  {new Date(Number(b.date)).toLocaleDateString()}{" "}
-                  {new Date(Number(b.date)).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </div>
-              </div>
-              <div className="flex flex-col items-end gap-1">
-                <span
-                  className={`text-xs px-2 py-0.5 rounded-full ${statusColors[b.status]}`}
-                >
-                  {t[b.status]}
-                </span>
-              </div>
-            </div>
-            <div className="flex gap-2 mt-3">
-              {b.status !== BookingStatus.completed ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      await onCompleteBooking(b);
-                      await load();
-                    }}
-                    className="flex-1 py-1.5 rounded-lg bg-green-600 text-white text-sm font-semibold flex items-center justify-center gap-1"
-                    data-ocid={`bookings.complete.button.${idx + 1}`}
-                  >
-                    <CheckCircle className="w-4 h-4" /> {t.completeBookingBtn}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openEdit(b)}
-                    className="flex-1 py-1.5 rounded-lg border text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:bg-gray-800"
-                    data-ocid={`bookings.edit.button.${idx + 1}`}
-                  >
-                    {t.edit}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(b.id)}
-                    className="flex-1 py-1.5 rounded-lg border border-red-200 text-sm text-red-500 hover:bg-red-50"
-                    data-ocid={`bookings.delete_button.${idx + 1}`}
-                  >
-                    {t.delete}
-                  </button>
-                </>
-              ) : (
-                <div className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-green-50 text-green-700 text-sm font-semibold">
-                  <CheckCircle className="w-4 h-4" />
-                  <span>{t.completed || "Completed"}</span>
-                </div>
-              )}
-            </div>
+    <>
+      <div className="flex flex-col min-h-full bg-white dark:bg-gray-900">
+        <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={goBack}
+              className="p-1"
+              data-ocid="bookings.back.button"
+            >
+              <ArrowLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+            </button>
+            <button
+              type="button"
+              onClick={onOpenSidebar}
+              className="p-1"
+              data-ocid="bookings.menu.button"
+            >
+              <Menu className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+            </button>
+            <h1 className="font-bold text-lg text-gray-900 dark:text-gray-100">
+              {listOnly ? t.bookingList : t.bookings}
+            </h1>
           </div>
-        ))}
+          {!listOnly && (
+            <button
+              type="button"
+              onClick={() => setShowForm(true)}
+              className="flex items-center gap-1 bg-green-700 text-white px-3 py-2 rounded-xl text-sm font-semibold"
+              data-ocid="bookings.add.primary_button"
+            >
+              <Plus className="w-4 h-4" /> {t.newBooking}
+            </button>
+          )}
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+          {bookings.length === 0 && (
+            <p
+              className="text-gray-400 dark:text-gray-500 text-center py-12"
+              data-ocid="bookings.empty_state"
+            >
+              {t.noBookings}
+            </p>
+          )}
+          {bookings.map((b, idx) => (
+            <div
+              key={b.id.toString()}
+              className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-sm p-4"
+              data-ocid={`bookings.item.${idx + 1}`}
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="font-semibold text-gray-900 dark:text-gray-100">
+                    {getPartyName(b.partyId)}
+                  </div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    {b.workType}
+                  </div>
+                  <div className="text-sm text-gray-400 dark:text-gray-500">
+                    {new Date(Number(b.date)).toLocaleDateString()}{" "}
+                    {new Date(Number(b.date)).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full ${statusColors[b.status]}`}
+                  >
+                    {t[b.status]}
+                  </span>
+                </div>
+              </div>
+              <div className="flex gap-2 mt-3">
+                {b.status !== BookingStatus.completed ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await onCompleteBooking(b);
+                        await load();
+                      }}
+                      className="flex-1 py-1.5 rounded-lg bg-green-600 text-white text-sm font-semibold flex items-center justify-center gap-1"
+                      data-ocid={`bookings.complete.button.${idx + 1}`}
+                    >
+                      <CheckCircle className="w-4 h-4" /> {t.completeBookingBtn}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openEdit(b)}
+                      className="flex-1 py-1.5 rounded-lg border text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:bg-gray-800"
+                      data-ocid={`bookings.edit.button.${idx + 1}`}
+                    >
+                      {t.edit}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(b.id)}
+                      className="flex-1 py-1.5 rounded-lg border border-red-200 text-sm text-red-500 hover:bg-red-50"
+                      data-ocid={`bookings.delete_button.${idx + 1}`}
+                    >
+                      {t.delete}
+                    </button>
+                  </>
+                ) : (
+                  <div className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-green-50 text-green-700 text-sm font-semibold">
+                    <CheckCircle className="w-4 h-4" />
+                    <span>{t.completed || "Completed"}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+      {licenceExpired && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-red-600/95">
+          <div className="text-center p-8">
+            <p className="text-4xl font-bold text-white mb-6">
+              Your Licence Expired
+            </p>
+            <button
+              type="button"
+              onClick={() => setLicenceExpired(false)}
+              className="px-6 py-3 bg-white text-red-600 font-bold rounded-lg text-lg"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
