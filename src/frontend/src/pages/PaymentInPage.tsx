@@ -115,7 +115,7 @@ export default function PaymentInPage({ actor, onOpenSidebar }: Props) {
 
   const handleSave = () => {
     if (!selectedParty) {
-      toast.error((t as any).selectPartyFirst || "Please select a customer");
+      toast.error((t as any).selectPartyFirst);
       return;
     }
     const disc = Number(discount) || 0;
@@ -129,13 +129,13 @@ export default function PaymentInPage({ actor, onOpenSidebar }: Props) {
       upiAmt = Number(splitUpi) || 0;
       totalAmt = cashAmt + upiAmt;
       if (totalAmt <= 0) {
-        toast.error((t as any).amountRequiredMsg || "Enter payment amount");
+        toast.error((t as any).amountRequiredMsg);
         return;
       }
     } else {
       totalAmt = Number(amount);
       if (totalAmt <= 0) {
-        toast.error((t as any).amountRequiredMsg || "Enter payment amount");
+        toast.error((t as any).amountRequiredMsg);
         return;
       }
       if (paymentMethod === "cash") cashAmt = totalAmt;
@@ -218,7 +218,7 @@ export default function PaymentInPage({ actor, onOpenSidebar }: Props) {
     existingTx.unshift(txEntry);
     localStorage.setItem("ktp_saved_transactions", JSON.stringify(existingTx));
 
-    toast.success((t as any).savedSuccess || "Payment saved!");
+    toast.success((t as any).savedSuccess);
 
     // Reset form
     setSelectedParty(null);
@@ -259,7 +259,7 @@ export default function PaymentInPage({ actor, onOpenSidebar }: Props) {
           <ArrowLeft size={22} />
         </button>
         <h1 className="text-white font-semibold text-lg flex-1">
-          {(t as any).paymentReceive || "ચૂકવણી લો"}
+          {(t as any).paymentReceive}
         </h1>
         {onOpenSidebar && (
           <button
@@ -276,9 +276,7 @@ export default function PaymentInPage({ actor, onOpenSidebar }: Props) {
       <main className="flex-1 p-4 space-y-4 overflow-y-auto pb-32">
         {/* Customer search */}
         <div className={`rounded-xl border p-4 space-y-2 ${cardBg}`}>
-          <Label className="font-medium">
-            {(t as any).customerName || "ગ્રાહકનું નામ"} *
-          </Label>
+          <Label className="font-medium">{(t as any).customerName} *</Label>
           <div className="relative">
             <Input
               value={search}
@@ -289,7 +287,7 @@ export default function PaymentInPage({ actor, onOpenSidebar }: Props) {
               }}
               onFocus={() => setShowDropdown(true)}
               onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-              placeholder={(t as any).searchParty || "Search customer..."}
+              placeholder={(t as any).searchParty}
               className={inputCls}
               data-ocid="payment_in.search_input"
             />
@@ -315,11 +313,11 @@ export default function PaymentInPage({ actor, onOpenSidebar }: Props) {
                         <span className="font-medium">{p.name}</span>
                         {due > 0 ? (
                           <span className="text-xs text-red-500 font-semibold">
-                            Due ₹{due}
+                            {(t as any).due} ₹{due}
                           </span>
                         ) : due < 0 ? (
                           <span className="text-xs text-green-500 font-semibold">
-                            Adv ₹{Math.abs(due)}
+                            {(t as any).advance} ₹{Math.abs(due)}
                           </span>
                         ) : (
                           <span className="text-xs text-gray-400">₹0</span>
@@ -396,10 +394,10 @@ export default function PaymentInPage({ actor, onOpenSidebar }: Props) {
                     }`}
                   >
                     {selectedDue > 0
-                      ? (t as any).dueAmount || "Due Amount"
+                      ? (t as any).dueAmount
                       : selectedDue < 0
-                        ? (t as any).advanceBalance || "Advance Balance"
-                        : (t as any).noBalance || "No Balance"}
+                        ? (t as any).advanceBalance
+                        : (t as any).noBalance}
                   </p>
                   <p
                     className={`text-xl font-bold mt-0.5 ${
@@ -436,9 +434,9 @@ export default function PaymentInPage({ actor, onOpenSidebar }: Props) {
                 }`}
               >
                 {selectedDue > 0
-                  ? (t as any).due || "Baaki"
+                  ? (t as any).due
                   : selectedDue < 0
-                    ? (t as any).advance || "Advance"
+                    ? (t as any).advance
                     : "—"}
               </div>
             </div>
@@ -447,9 +445,7 @@ export default function PaymentInPage({ actor, onOpenSidebar }: Props) {
 
         {/* Payment Method */}
         <div className={`rounded-xl border p-4 space-y-3 ${cardBg}`}>
-          <Label className="font-medium">
-            {(t as any).paymentMethod || "ચૂકવણી પદ્ધતિ"}
-          </Label>
+          <Label className="font-medium">{(t as any).paymentMethod}</Label>
           <div className="flex gap-2">
             {(["cash", "upi", "split"] as PayMethod[]).map((m) => (
               <button
@@ -470,7 +466,7 @@ export default function PaymentInPage({ actor, onOpenSidebar }: Props) {
                 data-ocid="payment_in.toggle"
               >
                 {m === "cash"
-                  ? `💵 ${(t as any).totalCash || "Cash"}`
+                  ? `💵 ${(t as any).totalCash}`
                   : m === "upi"
                     ? "📱 UPI"
                     : "🔀 Split"}
@@ -514,7 +510,7 @@ export default function PaymentInPage({ actor, onOpenSidebar }: Props) {
           ) : (
             <div>
               <Label className="text-xs text-gray-500">
-                {(t as any).paymentAmount || "Amount"} *
+                {(t as any).paymentAmount} *
               </Label>
               <Input
                 type="number"
@@ -530,9 +526,7 @@ export default function PaymentInPage({ actor, onOpenSidebar }: Props) {
 
         {/* Discount */}
         <div className={`rounded-xl border p-4 space-y-2 ${cardBg}`}>
-          <Label className="font-medium">
-            {(t as any).discount || "Discount (₹)"}
-          </Label>
+          <Label className="font-medium">{(t as any).discountLabel}</Label>
           <Input
             type="number"
             value={discount}
@@ -545,9 +539,7 @@ export default function PaymentInPage({ actor, onOpenSidebar }: Props) {
 
         {/* Date & Time */}
         <div className={`rounded-xl border p-4 space-y-2 ${cardBg}`}>
-          <Label className="font-medium">
-            {(t as any).dateTime || "Date & Time"}
-          </Label>
+          <Label className="font-medium">{(t as any).dateTime}</Label>
           <Input
             type="datetime-local"
             value={dateTime}
@@ -570,7 +562,7 @@ export default function PaymentInPage({ actor, onOpenSidebar }: Props) {
           className="w-full py-4 text-lg font-bold bg-green-600 hover:bg-green-700 text-white rounded-xl"
           data-ocid="payment_in.submit_button"
         >
-          {saving ? "..." : (t as any).save || "સાચવો"}
+          {saving ? "..." : t.save}
         </Button>
       </div>
     </div>

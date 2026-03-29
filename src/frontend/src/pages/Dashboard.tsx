@@ -28,6 +28,7 @@ function getSavedTransactions(): SavedTxn[] {
 
 export default function Dashboard({ actor, onOpenSidebar }: Props) {
   const { t, setPage } = useApp();
+  const [businessName, setBusinessName] = useState("Kisan Seva");
   const [activeTab, setActiveTab] = useState<ActiveTab>("parties");
   const [todayEarnings, setTodayEarnings] = useState<bigint>(0n);
   const [monthEarnings, setMonthEarnings] = useState<bigint>(0n);
@@ -45,6 +46,8 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
   useEffect(() => {
     const load = async () => {
       try {
+        const profile = await actor.getCallerUserProfile();
+        if (profile?.businessName) setBusinessName(profile.businessName);
         const [tod, mon, tot, parties, payments] = await Promise.all([
           actor.getEarningsToday(),
           actor.getEarningsThisMonth(),
@@ -299,7 +302,7 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
         </button>
         <div className="flex items-center gap-2">
           <span className="font-bold text-gray-800 dark:text-gray-200 text-base">
-            Kisan Seva
+            {businessName}
           </span>
           <Pencil className="w-4 h-4 text-gray-400 dark:text-gray-500" />
         </div>
@@ -308,11 +311,11 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
 
       {/* Stats Cards */}
       <div className="px-4 pt-4 mb-2">
-        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="grid grid-cols-2 gap-3">
           {stats.map((s) => (
             <div
               key={s.label}
-              className={`flex-shrink-0 bg-white dark:bg-gray-900 rounded-2xl border ${s.border} p-3 shadow-sm w-36`}
+              className={`bg-white dark:bg-gray-900 rounded-2xl border ${s.border} p-3 shadow-sm`}
             >
               <div className="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                 <span className={s.iconColor}>{s.icon}</span>

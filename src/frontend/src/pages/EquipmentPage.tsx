@@ -88,7 +88,7 @@ export default function EquipmentPage({ onOpenSidebar }: Props) {
 
   const handleSave = () => {
     if (!form.name.trim()) {
-      toast.error((t as any).nameRequiredMsg || "Name is required");
+      toast.error((t as any).nameRequiredMsg);
       return;
     }
     const list = loadEquipment();
@@ -101,7 +101,7 @@ export default function EquipmentPage({ onOpenSidebar }: Props) {
         sold: false,
       };
       list.push(newEq);
-      toast.success((t as any).savedMsg || "Equipment added");
+      toast.success((t as any).savedMsg);
     } else if (view === "edit" && editTarget) {
       const idx = list.findIndex((e) => e.id === editTarget.id);
       if (idx !== -1) {
@@ -112,7 +112,7 @@ export default function EquipmentPage({ onOpenSidebar }: Props) {
           purchaseDate: form.purchaseDate,
         };
       }
-      toast.success((t as any).updatedMsg || "Equipment updated");
+      toast.success((t as any).updatedMsg);
     }
     saveEquipment(list);
     refresh();
@@ -121,7 +121,7 @@ export default function EquipmentPage({ onOpenSidebar }: Props) {
 
   const handleSell = () => {
     if (!sellForm.soldPrice) {
-      toast.error((t as any).amountRequired || "Sell price is required");
+      toast.error((t as any).amountRequired);
       return;
     }
     if (!sellTarget) return;
@@ -138,15 +138,15 @@ export default function EquipmentPage({ onOpenSidebar }: Props) {
     saveEquipment(list);
     refresh();
     setView("list");
-    toast.success((t as any).soldMsg || "Equipment sold");
+    toast.success((t as any).soldMsg);
   };
 
   const handleDelete = (id: string) => {
-    if (!confirm((t as any).confirmDelete || "Delete this equipment?")) return;
+    if (!confirm((t as any).confirmDelete)) return;
     const list = loadEquipment().filter((e) => e.id !== id);
     saveEquipment(list);
     refresh();
-    toast.success((t as any).deletedMsg || "Deleted");
+    toast.success((t as any).deletedMsg);
   };
 
   // --- Form view (add/edit) ---
@@ -164,27 +164,25 @@ export default function EquipmentPage({ onOpenSidebar }: Props) {
             <ArrowLeft size={22} />
           </button>
           <h1 className="text-white font-semibold text-lg flex-1">
-            {view === "edit"
-              ? (t as any).edit || "Edit"
-              : (t as any).addEquipment || "Add Equipment"}
+            {view === "edit" ? (t as any).edit : (t as any).addEquipment}
           </h1>
         </header>
         <div className="p-4 flex flex-col gap-4">
           <div>
             <Label className={darkMode ? "text-gray-200" : ""}>
-              {(t as any).equipmentName || "Equipment Name"} *
+              {(t as any).equipmentName} *
             </Label>
             <Input
               className={`mt-1 ${inputCls}`}
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder={(t as any).equipmentName || "Equipment Name"}
+              placeholder={(t as any).equipmentName}
               data-ocid="equipment.input"
             />
           </div>
           <div>
             <Label className={darkMode ? "text-gray-200" : ""}>
-              {(t as any).purchasePrice || "Purchase Price (₹)"}
+              {(t as any).purchasePrice}
             </Label>
             <Input
               className={`mt-1 ${inputCls}`}
@@ -199,7 +197,7 @@ export default function EquipmentPage({ onOpenSidebar }: Props) {
           </div>
           <div>
             <Label className={darkMode ? "text-gray-200" : ""}>
-              {(t as any).purchaseDate || "Purchase Date"}
+              {(t as any).purchaseDate}
             </Label>
             <Input
               className={`mt-1 ${inputCls}`}
@@ -216,7 +214,7 @@ export default function EquipmentPage({ onOpenSidebar }: Props) {
             className="bg-green-700 hover:bg-green-800 text-white w-full py-3 rounded-xl"
             data-ocid="equipment.submit_button"
           >
-            {(t as any).save || "Save"}
+            {(t as any).save}
           </Button>
         </div>
       </div>
@@ -238,7 +236,7 @@ export default function EquipmentPage({ onOpenSidebar }: Props) {
             <ArrowLeft size={22} />
           </button>
           <h1 className="text-white font-semibold text-lg flex-1">
-            {(t as any).sellEquipment || "Sell Equipment"} — {sellTarget.name}
+            {(t as any).sellEquipment} — {sellTarget.name}
           </h1>
         </header>
         <div className="p-4 flex flex-col gap-4">
@@ -246,13 +244,13 @@ export default function EquipmentPage({ onOpenSidebar }: Props) {
             className={`rounded-xl p-3 border ${darkMode ? "bg-gray-800 border-gray-700" : "bg-orange-50 border-orange-200"}`}
           >
             <p className="text-sm text-orange-700 dark:text-orange-300">
-              {(t as any).purchasePrice || "Purchase Price"}: ₹
+              {(t as any).purchasePrice}: ₹
               {sellTarget.purchasePrice.toLocaleString("en-IN")}
             </p>
           </div>
           <div>
             <Label className={darkMode ? "text-gray-200" : ""}>
-              {(t as any).sellPrice || "Sell Price (₹)"} *
+              {(t as any).sellPrice} *
             </Label>
             <Input
               className={`mt-1 ${inputCls}`}
@@ -267,7 +265,7 @@ export default function EquipmentPage({ onOpenSidebar }: Props) {
           </div>
           <div>
             <Label className={darkMode ? "text-gray-200" : ""}>
-              {(t as any).sellDate || "Sell Date"}
+              {(t as any).sellDate}
             </Label>
             <Input
               className={`mt-1 ${inputCls}`}
@@ -284,7 +282,7 @@ export default function EquipmentPage({ onOpenSidebar }: Props) {
             className="bg-orange-600 hover:bg-orange-700 text-white w-full py-3 rounded-xl"
             data-ocid="equipment.sell_confirm.primary_button"
           >
-            {(t as any).confirmSell || "Confirm Sale"}
+            {(t as any).confirmSell}
           </Button>
         </div>
       </div>
@@ -316,7 +314,7 @@ export default function EquipmentPage({ onOpenSidebar }: Props) {
           </button>
         )}
         <h1 className="text-white font-semibold text-lg flex-1">
-          {(t as any).equipment || "Equipment"}
+          {(t as any).equipment}
         </h1>
         <button
           type="button"
@@ -324,7 +322,7 @@ export default function EquipmentPage({ onOpenSidebar }: Props) {
           className="flex items-center gap-1 bg-white text-green-700 px-3 py-1.5 rounded-lg text-sm font-semibold"
           data-ocid="equipment.add.primary_button"
         >
-          <Plus size={16} /> {(t as any).add || "Add"}
+          <Plus size={16} /> {(t as any).add}
         </button>
       </header>
 
@@ -335,7 +333,7 @@ export default function EquipmentPage({ onOpenSidebar }: Props) {
             data-ocid="equipment.empty_state"
           >
             <Package size={48} className="mb-3 opacity-40" />
-            <p>{(t as any).noEquipment || "No equipment added yet"}</p>
+            <p>{(t as any).noEquipment}</p>
           </div>
         ) : (
           equipment.map((eq, idx) => (
@@ -360,7 +358,7 @@ export default function EquipmentPage({ onOpenSidebar }: Props) {
                   </div>
                   <div className="mt-1 text-sm text-gray-500 dark:text-gray-400 space-y-0.5">
                     <p>
-                      {(t as any).purchasePrice || "Purchase"}:{" "}
+                      {(t as any).purchasePrice}:{" "}
                       <span className="font-medium text-green-700 dark:text-green-400">
                         ₹{eq.purchasePrice.toLocaleString("en-IN")}
                       </span>{" "}
@@ -368,7 +366,7 @@ export default function EquipmentPage({ onOpenSidebar }: Props) {
                     </p>
                     {eq.sold && eq.soldPrice !== undefined && (
                       <p>
-                        {(t as any).soldFor || "Sold"}:{" "}
+                        {(t as any).soldFor}:{" "}
                         <span className="font-medium text-orange-600">
                           ₹{eq.soldPrice.toLocaleString("en-IN")}
                         </span>{" "}
@@ -383,7 +381,7 @@ export default function EquipmentPage({ onOpenSidebar }: Props) {
                             : "text-red-500"
                         }`}
                       >
-                        {(t as any).gainLoss || "Net"}:{" "}
+                        {(t as any).gainLoss}:{" "}
                         {eq.soldPrice >= eq.purchasePrice ? "+" : "-"}₹
                         {Math.abs(
                           eq.soldPrice - eq.purchasePrice,
@@ -402,7 +400,7 @@ export default function EquipmentPage({ onOpenSidebar }: Props) {
                       className={`flex items-center gap-1 flex-1 py-1.5 rounded-lg border text-sm justify-center ${darkMode ? "border-gray-600 text-gray-300" : "text-gray-600"}`}
                       data-ocid={`equipment.edit_button.${idx + 1}`}
                     >
-                      <Pencil size={13} /> {(t as any).edit || "Edit"}
+                      <Pencil size={13} /> {(t as any).edit}
                     </button>
                     <button
                       type="button"
@@ -410,7 +408,7 @@ export default function EquipmentPage({ onOpenSidebar }: Props) {
                       className="flex items-center gap-1 flex-1 py-1.5 rounded-lg border border-orange-300 text-orange-600 text-sm justify-center"
                       data-ocid={`equipment.sell_button.${idx + 1}`}
                     >
-                      💰 {(t as any).sell || "Sell"}
+                      💰 {(t as any).sell}
                     </button>
                   </>
                 )}

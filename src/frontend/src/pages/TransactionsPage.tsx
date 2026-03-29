@@ -8,7 +8,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Camera, Menu, Mic, Share2, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Camera,
+  Menu,
+  Mic,
+  Plus,
+  Share2,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useApp } from "../App";
@@ -436,6 +445,15 @@ Payment: ${methodLabel(data.paymentMethod)}${data.paymentMethod === PaymentMetho
   );
 }
 
+function calcEntryMinutes(start: string, end: string): number {
+  if (!start || !end) return 0;
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  let diff = eh * 60 + em - (sh * 60 + sm);
+  if (diff < 0) diff += 24 * 60;
+  return diff;
+}
+
 export default function TransactionsPage({
   actor,
   onOpenSidebar,
@@ -467,8 +485,9 @@ export default function TransactionsPage({
   const [driverId, setDriverId] = useState("");
   const [hours, setHours] = useState(0);
   const [minutes, setMinutes] = useState(0);
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
+  const [timeEntries, setTimeEntries] = useState<
+    Array<{ id: string; startTime: string; endTime: string }>
+  >([]);
   const [amount, setAmount] = useState("");
   const [receivedAmount, setReceivedAmount] = useState("");
   const [discount, setDiscount] = useState("");
@@ -580,8 +599,7 @@ export default function TransactionsPage({
     setDriverId("");
     setHours(0);
     setMinutes(0);
-    setStartTime("");
-    setEndTime("");
+    setTimeEntries([]);
     setAmount("");
     setReceivedAmount("");
     setDiscount("");
@@ -808,19 +826,20 @@ export default function TransactionsPage({
     setSaving(false);
   };
 
-  // Auto-calculate hours/minutes from start/end time
+  // Recalculate total hours/minutes from all time entries
   useEffect(() => {
-    if (startTime && endTime) {
-      const [sh, sm] = startTime.split(":").map(Number);
-      const [eh, em] = endTime.split(":").map(Number);
-      let totalMin = eh * 60 + em - (sh * 60 + sm);
-      if (totalMin < 0) totalMin += 24 * 60; // handle overnight
-      if (totalMin > 0) {
-        setHours(Math.floor(totalMin / 60));
-        setMinutes(totalMin % 60);
-      }
+    const totalMin = timeEntries.reduce(
+      (sum, e) => sum + calcEntryMinutes(e.startTime, e.endTime),
+      0,
+    );
+    if (totalMin > 0) {
+      setHours(Math.floor(totalMin / 60));
+      setMinutes(totalMin % 60);
+    } else {
+      setHours(0);
+      setMinutes(0);
     }
-  }, [startTime, endTime]);
+  }, [timeEntries]);
 
   const netAmount = Math.max(0, Number(amount) - (Number(discount) || 0));
   const balanceDue = amount
@@ -1058,46 +1077,122 @@ export default function TransactionsPage({
           </Select>
         </div>
 
-        {/* Start Time & End Time */}
+        {/* Start/End Time Entries */}
         <div>
-          <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">
-            {t.startTime} / {t.endTime}
+          <Label className="text-sm text-gray-700 dark:text-gray-300 mb-2 block">
+            {(t as any).timeEntries || "Start/End Time"}
           </Label>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
-                {t.startTime}
-              </Label>
-              <Input
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                disabled={isFixedPrice}
-                className={
-                  isFixedPrice
-                    ? "bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed"
-                    : "bg-white dark:bg-gray-900"
-                }
-                data-ocid="transactions.start_time.input"
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
-                {t.endTime}
-              </Label>
-              <Input
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                disabled={isFixedPrice}
-                className={
-                  isFixedPrice
-                    ? "bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed"
-                    : "bg-white dark:bg-gray-900"
-                }
-                data-ocid="transactions.end_time.input"
-              />
-            </div>
+          <div className="space-y-2">
+            {timeEntries.map((entry) => {
+              const entryMin = calcEntryMinutes(entry.startTime, entry.endTime);
+              const entryH = Math.floor(entryMin / 60);
+              const entryM = entryMin % 60;
+              return (
+                <div
+                  key={entry.id}
+                  className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 rounded-lg p-2"
+                >
+                  <div className="flex-1">
+                    <Label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
+                      {t.startTime}
+                    </Label>
+                    <Input
+                      type="time"
+                      value={entry.startTime}
+                      onChange={(e) => {
+                        const updated = timeEntries.map((en) =>
+                          en.id === entry.id
+                            ? { ...en, startTime: e.target.value }
+                            : en,
+                        );
+                        setTimeEntries(updated);
+                      }}
+                      disabled={isFixedPrice}
+                      className={
+                        isFixedPrice
+                          ? "bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
+                          : "bg-white dark:bg-gray-900"
+                      }
+                      data-ocid="transactions.time_entry_start.input"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <Label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
+                      {t.endTime}
+                    </Label>
+                    <Input
+                      type="time"
+                      value={entry.endTime}
+                      onChange={(e) => {
+                        const updated = timeEntries.map((en) =>
+                          en.id === entry.id
+                            ? { ...en, endTime: e.target.value }
+                            : en,
+                        );
+                        setTimeEntries(updated);
+                      }}
+                      disabled={isFixedPrice}
+                      className={
+                        isFixedPrice
+                          ? "bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
+                          : "bg-white dark:bg-gray-900"
+                      }
+                      data-ocid="transactions.time_entry_end.input"
+                    />
+                  </div>
+                  {entryMin > 0 && (
+                    <div className="text-xs text-green-600 dark:text-green-400 font-medium whitespace-nowrap pt-4">
+                      {entryH > 0 ? `${entryH}h ` : ""}
+                      {entryM > 0 ? `${entryM}m` : ""}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setTimeEntries(
+                        timeEntries.filter((en) => en.id !== entry.id),
+                      )
+                    }
+                    disabled={isFixedPrice}
+                    className="pt-4 text-red-400 hover:text-red-600 disabled:opacity-30"
+                    aria-label="Remove time entry"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              );
+            })}
+            {timeEntries.length > 1 &&
+              (() => {
+                const totalMin = timeEntries.reduce(
+                  (sum, e) => sum + calcEntryMinutes(e.startTime, e.endTime),
+                  0,
+                );
+                const tH = Math.floor(totalMin / 60);
+                const tM = totalMin % 60;
+                return totalMin > 0 ? (
+                  <div className="text-sm font-bold text-green-600 dark:text-green-400 text-right pr-2">
+                    {(t as any).totalTime || "Total"}: {tH > 0 ? `${tH}h ` : ""}
+                    {tM > 0 ? `${tM}m` : ""}
+                  </div>
+                ) : null;
+              })()}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                setTimeEntries([
+                  ...timeEntries,
+                  { id: Date.now().toString(), startTime: "", endTime: "" },
+                ])
+              }
+              disabled={isFixedPrice}
+              className="w-full border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950 dark:text-green-400 dark:border-green-700"
+            >
+              <Plus size={14} className="mr-1" />
+              {(t as any).addTime || "Add Time"}
+            </Button>
           </div>
         </div>
 

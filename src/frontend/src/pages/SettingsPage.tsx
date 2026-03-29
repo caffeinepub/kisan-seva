@@ -125,7 +125,7 @@ export default function SettingsPage({ actor }: Props) {
     a.download = `kisan-seva-backup-${date}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success(t.backupDownloaded || "Backup download started ✓");
+    toast.success(t.backupDownloaded);
   };
 
   const handleRestoreClick = () => {
@@ -148,7 +148,7 @@ export default function SettingsPage({ actor }: Props) {
             }
           }
         }
-        toast.success(t.restoreSuccess || "Data restored! Reloading...");
+        toast.success(t.restoreSuccess);
         setTimeout(() => window.location.reload(), 1200);
       } catch {
         toast.error("Invalid backup file");
@@ -163,7 +163,7 @@ export default function SettingsPage({ actor }: Props) {
     if (!currentUser?.mobile) return;
     const success = deleteAccount(currentUser.mobile, deletePin);
     if (!success) {
-      setDeletePinError(t.wrongPin || "Wrong PIN");
+      setDeletePinError(t.wrongPin);
       return;
     }
     setDeleteDialogOpen(false);
@@ -234,29 +234,22 @@ export default function SettingsPage({ actor }: Props) {
           <h2 className="font-semibold text-gray-800 dark:text-gray-200 mb-3">
             {t.language}
           </h2>
-          <div className="flex gap-2 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
-            {(["gu", "hi", "en"] as const).map((l) => (
-              <button
-                type="button"
-                key={l}
-                onClick={() => setLang(l)}
-                className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
-                  lang === l
-                    ? "bg-white dark:bg-gray-700 shadow text-green-700"
-                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700"
-                }`}
-                data-ocid="settings.toggle"
-              >
-                {l === "gu" ? "ગુજરાતી" : l === "hi" ? "हिन्दी" : "English"}
-              </button>
-            ))}
-          </div>
+          <select
+            value={lang}
+            onChange={(e) => setLang(e.target.value as any)}
+            className="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-green-500"
+            data-ocid="settings.select"
+          >
+            <option value="gu">ગુજરાતી</option>
+            <option value="hi">हिन्दी</option>
+            <option value="en">English</option>
+          </select>
         </div>
 
         {/* Dark Mode */}
         <div>
           <h2 className="font-semibold text-gray-800 dark:text-gray-200 mb-3">
-            {t.darkMode || "Dark Mode"}
+            {t.darkMode}
           </h2>
           <div className="flex items-center justify-between p-3 bg-gray-100 dark:bg-gray-800 rounded-xl">
             <div className="flex items-center gap-2">
@@ -266,9 +259,7 @@ export default function SettingsPage({ actor }: Props) {
                 <Sun className="w-5 h-5 text-yellow-500" />
               )}
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {darkMode
-                  ? t.darkModeOn || "Dark Mode On"
-                  : t.darkModeOff || "Light Mode"}
+                {darkMode ? t.darkModeOn : t.darkModeOff}
               </span>
             </div>
             <Switch
@@ -282,17 +273,17 @@ export default function SettingsPage({ actor }: Props) {
         {/* App Lock (PIN) */}
         <div>
           <h2 className="font-semibold text-gray-800 dark:text-gray-200 mb-3">
-            {(t as any).appLockPin || "App Lock (PIN)"}
+            {(t as any).appLockPin}
           </h2>
           <div className="flex items-center justify-between p-3 bg-gray-100 dark:bg-gray-800 rounded-xl">
             <div className="flex items-center gap-2">
               <Lock className="w-5 h-5 text-green-600" />
               <div>
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300 block">
-                  {(t as any).appLockPin || "App Lock (PIN)"}
+                  {(t as any).appLockPin}
                 </span>
                 <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {(t as any).appLockDesc || "Require PIN every time app opens"}
+                  {(t as any).appLockDesc}
                 </span>
               </div>
             </div>
@@ -311,19 +302,19 @@ export default function SettingsPage({ actor }: Props) {
         {!isGuest && (
           <div>
             <h2 className="font-semibold text-gray-800 dark:text-gray-200 mb-3">
-              🔐 {(t as any).security || "Security"}
+              🔐 {(t as any).security}
             </h2>
 
             {/* Change Password card */}
             <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-4 mb-3">
               <h3 className="font-medium text-gray-800 dark:text-gray-200 mb-3 text-sm">
-                {(t as any).changePassword || "Change Password"}
+                {(t as any).changePassword}
               </h3>
               <div className="flex flex-col gap-3">
                 {/* Current Password */}
                 <div>
                   <Label className="text-gray-700 dark:text-gray-300 text-xs">
-                    {(t as any).currentPassword || "Current Password"}
+                    {(t as any).currentPassword}
                   </Label>
                   <div className="relative mt-1">
                     <Input
@@ -354,7 +345,7 @@ export default function SettingsPage({ actor }: Props) {
                 {/* New Password */}
                 <div>
                   <Label className="text-gray-700 dark:text-gray-300 text-xs">
-                    {(t as any).newPassword || "New Password"}
+                    {(t as any).newPassword}
                   </Label>
                   <div className="relative mt-1">
                     <Input
@@ -385,7 +376,7 @@ export default function SettingsPage({ actor }: Props) {
                 {/* Confirm New Password */}
                 <div>
                   <Label className="text-gray-700 dark:text-gray-300 text-xs">
-                    {(t as any).confirmNewPassword || "Confirm New Password"}
+                    {(t as any).confirmNewPassword}
                   </Label>
                   <div className="relative mt-1">
                     <Input
@@ -435,7 +426,7 @@ export default function SettingsPage({ actor }: Props) {
                   className="bg-green-700 hover:bg-green-800 text-white w-full rounded-lg disabled:opacity-50"
                   data-ocid="settings.save_button"
                 >
-                  {(t as any).updatePassword || "Update Password"}
+                  {(t as any).updatePassword}
                 </Button>
               </div>
             </div>
@@ -443,12 +434,12 @@ export default function SettingsPage({ actor }: Props) {
             {/* Change PIN card */}
             <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-4">
               <h3 className="font-medium text-gray-800 dark:text-gray-200 mb-3 text-sm">
-                {(t as any).changePin || "Change PIN"}
+                {(t as any).changePin}
               </h3>
               <div className="flex flex-col gap-3">
                 <div>
                   <Label className="text-gray-700 dark:text-gray-300 text-xs">
-                    {(t as any).currentPin || "Current PIN"}
+                    {(t as any).currentPin}
                   </Label>
                   <Input
                     type="tel"
@@ -468,7 +459,7 @@ export default function SettingsPage({ actor }: Props) {
                 </div>
                 <div>
                   <Label className="text-gray-700 dark:text-gray-300 text-xs">
-                    {(t as any).newPin || "New PIN"}
+                    {(t as any).newPin}
                   </Label>
                   <Input
                     type="tel"
@@ -488,7 +479,7 @@ export default function SettingsPage({ actor }: Props) {
                 </div>
                 <div>
                   <Label className="text-gray-700 dark:text-gray-300 text-xs">
-                    {(t as any).confirmNewPin || "Confirm New PIN"}
+                    {(t as any).confirmNewPin}
                   </Label>
                   <Input
                     type="tel"
@@ -530,7 +521,7 @@ export default function SettingsPage({ actor }: Props) {
                   className="bg-green-700 hover:bg-green-800 text-white w-full rounded-lg disabled:opacity-50"
                   data-ocid="settings.save_button"
                 >
-                  {(t as any).updatePin || "Update PIN"}
+                  {(t as any).updatePin}
                 </Button>
               </div>
             </div>
@@ -540,7 +531,7 @@ export default function SettingsPage({ actor }: Props) {
         {/* Backup & Restore */}
         <div>
           <h2 className="font-semibold text-gray-800 dark:text-gray-200 mb-3">
-            {t.backupRestore || "Backup & Restore"}
+            {t.backupRestore}
           </h2>
           <div className="flex flex-col gap-2">
             <Button
@@ -550,7 +541,7 @@ export default function SettingsPage({ actor }: Props) {
               data-ocid="settings.primary_button"
             >
               <Download className="w-4 h-4" />
-              {t.downloadBackup || "Download Backup"}
+              {t.downloadBackup}
             </Button>
             <Button
               variant="outline"
@@ -559,7 +550,7 @@ export default function SettingsPage({ actor }: Props) {
               data-ocid="settings.secondary_button"
             >
               <Upload className="w-4 h-4" />
-              {t.restoreBackup || "Restore Backup"}
+              {t.restoreBackup}
             </Button>
             <input
               ref={fileInputRef}
@@ -572,7 +563,7 @@ export default function SettingsPage({ actor }: Props) {
               <div className="flex items-center gap-2 mt-1 px-1">
                 <Cloud className="w-4 h-4 text-green-600" />
                 <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {t.cloudSynced || "Data synced to cloud"}
+                  {t.cloudSynced}
                 </span>
               </div>
             )}
@@ -677,7 +668,7 @@ export default function SettingsPage({ actor }: Props) {
               data-ocid="settings.open_modal_button"
             >
               <Trash2 className="w-4 h-4 mr-2" />
-              {t.deleteAccount || "Delete Account"}
+              {t.deleteAccount}
             </Button>
           </div>
         )}
@@ -692,16 +683,15 @@ export default function SettingsPage({ actor }: Props) {
           <DialogHeader>
             <DialogTitle className="text-red-600 dark:text-red-400 flex items-center gap-2">
               <Trash2 className="w-5 h-5" />
-              {t.deleteAccount || "Delete Account"}
+              {t.deleteAccount}
             </DialogTitle>
             <DialogDescription className="text-gray-700 dark:text-gray-300">
-              {t.deleteAccountWarning ||
-                "This will permanently delete your account and all data. This cannot be undone."}
+              {t.deleteAccountWarning}
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3 py-2">
             <Label className="text-gray-700 dark:text-gray-300">
-              {t.enterPinToConfirm || "Enter PIN to confirm"}
+              {t.enterPinToConfirm}
             </Label>
             <Input
               type="password"
@@ -732,7 +722,7 @@ export default function SettingsPage({ actor }: Props) {
               className="dark:border-gray-600 dark:text-gray-300"
               data-ocid="settings.cancel_button"
             >
-              {t.cancel || "Cancel"}
+              {t.cancel}
             </Button>
             <Button
               disabled={deletePin.length < 4}
@@ -740,7 +730,7 @@ export default function SettingsPage({ actor }: Props) {
               className="bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
               data-ocid="settings.confirm_button"
             >
-              {t.confirmDelete || "Confirm Delete"}
+              {t.confirmDelete}
             </Button>
           </DialogFooter>
         </DialogContent>
