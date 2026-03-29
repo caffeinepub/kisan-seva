@@ -1,0 +1,26 @@
+{
+  "name": "Kisan Seva",
+  "short_name": "Kisan Seva",
+  "description": "Tractor Business Management App",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#16a34a",
+  "background_color": "#16a34a",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='38' fill='%2316a34a'/%3E%3Csvg x='29' y='29' width='134' height='134' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4h9l1 5H2L3 4z'/%3E%3Cpath d='M2 9v3h10V9'/%3E%3Cpath d='M12 9l4-5h3v5'/%3E%3Cpath d='M16 9v7'/%3E%3Cpath d='M14 14h6'/%3E%3Ccircle cx='17' cy='19' r='2'/%3E%3Ccircle cx='5' cy='19' r='2'/%3E%3C/svg%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='102' fill='%2316a34a'/%3E%3Csvg x='77' y='77' width='358' height='358' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4h9l1 5H2L3 4z'/%3E%3Cpath d='M2 9v3h10V9'/%3E%3Cpath d='M12 9l4-5h3v5'/%3E%3Cpath d='M16 9v7'/%3E%3Cpath d='M14 14h6'/%3E%3Ccircle cx='17' cy='19' r='2'/%3E%3Ccircle cx='5' cy='19' r='2'/%3E%3C/svg%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "finance"],
+  "lang": "en"
+}
