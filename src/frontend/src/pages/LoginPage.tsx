@@ -148,7 +148,10 @@ export default function LoginPage({
       return;
     }
     const result = onLogin(loginMobile, loginPassword);
-    if (result === "mobile_not_found") {
+    if (result === "blocked") {
+      setLoginError("🚫 User Blocked. Contact admin.");
+      setShowCreateHint(false);
+    } else if (result === "mobile_not_found") {
       setLoginError(
         (t as any).loginMobileNotFound ??
           "This mobile number is not registered. Please create a new account.",

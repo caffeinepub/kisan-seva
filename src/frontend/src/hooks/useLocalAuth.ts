@@ -77,10 +77,18 @@ export function useLocalAuth() {
   function loginWithMobile(
     mobile: string,
     password: string,
-  ): "ok" | "mobile_not_found" | "wrong_password" {
+  ): "ok" | "mobile_not_found" | "wrong_password" | "blocked" {
     const accounts = getAccounts();
     const byMobile = accounts.find((a) => a.mobile.trim() === mobile.trim());
     if (!byMobile) return "mobile_not_found";
+    try {
+      const blocked: string[] = JSON.parse(
+        localStorage.getItem("ktp_blocked_users") || "[]",
+      );
+      if (blocked.includes(byMobile.mobile)) return "blocked";
+    } catch {
+      /* ignore */
+    }
     if (byMobile.password !== password) return "wrong_password";
     const newSession = {
       user: { name: byMobile.name, mobile: byMobile.mobile },
@@ -181,9 +189,30 @@ export function useLocalAuth() {
     );
     if (idx === -1) return false;
     accounts.splice(idx, 1);
-    saveAccounts(accounts);
+    saveAccounts(accounts); // save FIRST before removing other keys
+    localStorage.removeItem(SESSION_KEY);
     const keysToRemove = Object.keys(localStorage).filter(
-      (k) => k.startsWith("ktp_") && k !== ACCOUNTS_KEY,
+      (k) =>
+        k.startsWith("ktp_") &&
+        k !== ACCOUNTS_KEY &&
+        k !== "ktp_admin_code" &&
+        k !== "ktp_blocked_users",
+    );
+    for (const k of keysToRemove) localStorage.removeItem(k);
+    return true;
+  }
+
+  function deleteUserByAdmin(mobile: string): boolean {
+    const accounts = getAccounts();
+    const filtered = accounts.filter((a) => a.mobile.trim() !== mobile.trim());
+    if (filtered.length === accounts.length) return false;
+    saveAccounts(filtered);
+    const keysToRemove = Object.keys(localStorage).filter(
+      (k) =>
+        k.startsWith("ktp_") &&
+        k !== ACCOUNTS_KEY &&
+        k !== "ktp_admin_code" &&
+        k !== "ktp_blocked_users",
     );
     for (const k of keysToRemove) localStorage.removeItem(k);
     return true;
@@ -201,6 +230,7 @@ export function useLocalAuth() {
     changePasswordWithOldPw,
     getSecurityQuestion,
     deleteAccount,
+    deleteUserByAdmin,
     verifyPin,
     changePin,
     resetPinViaSecurity,

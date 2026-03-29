@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 import { useApp } from "../App";
 import type { backendInterface } from "../backend";
 import { useLocalAuth } from "../hooks/useLocalAuth";
@@ -62,6 +63,8 @@ export default function SettingsPage({ actor }: Props) {
 
   // File input ref for restore
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const importPartyRef = useRef<HTMLInputElement>(null);
+  const importServiceRef = useRef<HTMLInputElement>(null);
 
   // --- Change Password state ---
   const [cpOld, setCpOld] = useState("");
@@ -216,6 +219,125 @@ export default function SettingsPage({ actor }: Props) {
     setPinOld("");
     setPinNew("");
     setPinConfirm("");
+  };
+
+  // --- Import Parties from xlsx ---
+  const handleImportParties = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const ab = await file.arrayBuffer();
+      const wb = XLSX.read(ab, { type: "array" });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows: Record<string, any>[] = XLSX.utils.sheet_to_json(sheet);
+      const existingParties = await actor.getAllParties();
+      const existingMobiles = new Set(
+        existingParties.map((p) => p.phone.trim()),
+      );
+      let added = 0;
+      let skipped = 0;
+      const obMap: Record<string, { due: number; advance: number }> =
+        JSON.parse(localStorage.getItem("ktp_party_opening_balance") || "{}");
+      for (const row of rows) {
+        const keys = Object.keys(row);
+        const nameKey = keys.find(
+          (k) => k.toLowerCase() === "party name" || k.toLowerCase() === "name",
+        );
+        const mobileKey = keys.find(
+          (k) =>
+            k.toLowerCase() === "mobile number" || k.toLowerCase() === "mobile",
+        );
+        const dueKey = keys.find((k) => k.toLowerCase() === "due");
+        const advKey = keys.find((k) => k.toLowerCase() === "advance");
+        const name = nameKey ? String(row[nameKey]).trim() : "";
+        const mobile = mobileKey ? String(row[mobileKey]).trim() : "";
+        if (!name || !mobile) {
+          skipped++;
+          continue;
+        }
+        if (existingMobiles.has(mobile)) {
+          skipped++;
+          continue;
+        }
+        const newId = await actor.createParty(name, mobile, "");
+        existingMobiles.add(mobile);
+        const due = dueKey ? Number(row[dueKey]) || 0 : 0;
+        const adv = advKey ? Number(row[advKey]) || 0 : 0;
+        if (due > 0 || adv > 0) {
+          obMap[newId.toString()] = { due, advance: adv };
+        }
+        added++;
+      }
+      localStorage.setItem("ktp_party_opening_balance", JSON.stringify(obMap));
+      toast.success(`Imported: ${added} parties added, ${skipped} skipped`);
+    } catch (err) {
+      toast.error(`Failed to import: ${String(err)}`);
+    }
+    e.target.value = "";
+  };
+
+  // --- Import Services from xlsx ---
+  const handleImportServices = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const ab = ev.target?.result as ArrayBuffer;
+        const wb = XLSX.read(ab, { type: "array" });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const rows: Record<string, any>[] = XLSX.utils.sheet_to_json(sheet);
+        interface KisanService {
+          id: string;
+          name: string;
+          rate: number;
+        }
+        const existing: KisanService[] = JSON.parse(
+          localStorage.getItem("kisan_services_v2") || "[]",
+        );
+        const existingNames = new Set(
+          existing.map((s) => s.name.toLowerCase()),
+        );
+        let added = 0;
+        let skipped = 0;
+        const updated = [...existing];
+        for (const row of rows) {
+          const keys = Object.keys(row);
+          const nameKey = keys.find(
+            (k) =>
+              k.toLowerCase() === "service name" || k.toLowerCase() === "name",
+          );
+          const priceKey = keys.find(
+            (k) => k.toLowerCase() === "price" || k.toLowerCase() === "rate",
+          );
+          const name = nameKey ? String(row[nameKey]).trim() : "";
+          if (!name) {
+            skipped++;
+            continue;
+          }
+          if (existingNames.has(name.toLowerCase())) {
+            skipped++;
+            continue;
+          }
+          const rate = priceKey ? Number(row[priceKey]) || 0 : 0;
+          updated.push({
+            id: Date.now().toString() + Math.random().toString(36).slice(2),
+            name,
+            rate,
+          });
+          existingNames.add(name.toLowerCase());
+          added++;
+        }
+        localStorage.setItem("kisan_services_v2", JSON.stringify(updated));
+        toast.success(`Imported: ${added} services added, ${skipped} skipped`);
+      } catch (err) {
+        toast.error(`Failed to import: ${String(err)}`);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    e.target.value = "";
   };
 
   return (
@@ -567,6 +689,49 @@ export default function SettingsPage({ actor }: Props) {
                 </span>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Import Data */}
+        <div>
+          <h2 className="font-semibold text-gray-800 dark:text-gray-200 mb-3">
+            📥 Import Data
+          </h2>
+          <div className="flex flex-col gap-2">
+            <Button
+              variant="outline"
+              onClick={() => importPartyRef.current?.click()}
+              className="w-full justify-start gap-2 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+              data-ocid="settings.primary_button"
+            >
+              📥 Import Parties (.xlsx)
+            </Button>
+            <input
+              ref={importPartyRef}
+              type="file"
+              accept=".xlsx"
+              className="hidden"
+              onChange={handleImportParties}
+            />
+            <Button
+              variant="outline"
+              onClick={() => importServiceRef.current?.click()}
+              className="w-full justify-start gap-2 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+              data-ocid="settings.secondary_button"
+            >
+              📥 Import Services (.xlsx)
+            </Button>
+            <input
+              ref={importServiceRef}
+              type="file"
+              accept=".xlsx"
+              className="hidden"
+              onChange={handleImportServices}
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Party format: Name, Mobile, Due, Advance | Service format: Name,
+              Price
+            </p>
           </div>
         </div>
 

@@ -116,6 +116,7 @@ export default function App() {
     getSecurityQuestion,
     verifyPin,
     resetPinViaSecurity,
+    deleteUserByAdmin,
   } = useLocalAuth();
   const localActor = createLocalActor();
   const [lang, setLangState] = useState<Lang>(() => {
@@ -214,7 +215,12 @@ export default function App() {
     if (showAdminPanel) {
       return (
         <AppContext.Provider value={contextValue}>
-          <AdminPanelPage onExit={() => setShowAdminPanel(false)} />
+          <AdminPanelPage
+            onExit={() => setShowAdminPanel(false)}
+            onDeleteUser={(mobile) => {
+              deleteUserByAdmin(mobile);
+            }}
+          />
           <Toaster />
         </AppContext.Provider>
       );

@@ -67,8 +67,15 @@ function PartyDetailView({
   const udharMap: Record<string, number> = JSON.parse(
     localStorage.getItem("ktp_party_udhar") || "{}",
   );
+  const openingMap: Record<string, { due: number; advance: number }> =
+    JSON.parse(localStorage.getItem("ktp_party_opening_balance") || "{}");
+  const openingDue = openingMap[party.id.toString()]?.due || 0;
+  const openingAdvance = openingMap[party.id.toString()]?.advance || 0;
   const totalDue =
-    Number(party.creditBalance) + (udharMap[party.id.toString()] || 0);
+    Number(party.creditBalance) +
+    (udharMap[party.id.toString()] || 0) +
+    openingDue -
+    openingAdvance;
   const businessName =
     localStorage.getItem("ktp_business_name") || "Kisan Seva";
   const businessMobile = localStorage.getItem("ktp_business_mobile") || "";
@@ -145,6 +152,16 @@ function PartyDetailView({
               {party.address && (
                 <div className="text-xs text-gray-400 dark:text-gray-500">
                   {party.address}
+                </div>
+              )}
+              {openingDue > 0 && (
+                <div className="text-xs text-red-500 mt-1">
+                  Opening Due: ₹{openingDue}
+                </div>
+              )}
+              {openingAdvance > 0 && (
+                <div className="text-xs text-green-600 mt-0.5">
+                  Opening Advance: ₹{openingAdvance}
                 </div>
               )}
             </div>
@@ -387,7 +404,13 @@ export default function PartiesPage({
   const { t, goBack } = useApp();
   const [parties, setParties] = useState<Party[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: "", phone: "", address: "" });
+  const [form, setForm] = useState({
+    name: "",
+    phone: "",
+    address: "",
+    openingDue: "",
+    openingAdvance: "",
+  });
   const [editId, setEditId] = useState<bigint | null>(null);
   const [saving, setSaving] = useState(false);
   const [selectedParty, setSelectedParty] = useState<Party | null>(null);
@@ -427,15 +450,44 @@ export default function PartiesPage({
     }
     setSaving(true);
     try {
+      let savedPartyId: string | null = null;
       if (editId !== null) {
         await actor.updateParty(editId, form.name, form.phone, form.address);
+        savedPartyId = editId.toString();
         toast.success(t.updatedMsg);
       } else {
-        await actor.createParty(form.name, form.phone, form.address);
+        const newId = await actor.createParty(
+          form.name,
+          form.phone,
+          form.address,
+        );
+        savedPartyId = newId?.toString() ?? null;
         toast.success(t.partyAddedMsg);
       }
+      // Save opening balance
+      if (savedPartyId) {
+        const obMap: Record<string, { due: number; advance: number }> =
+          JSON.parse(localStorage.getItem("ktp_party_opening_balance") || "{}");
+        const due = Number(form.openingDue) || 0;
+        const advance = Number(form.openingAdvance) || 0;
+        if (due > 0 || advance > 0) {
+          obMap[savedPartyId] = { due, advance };
+        } else {
+          delete obMap[savedPartyId];
+        }
+        localStorage.setItem(
+          "ktp_party_opening_balance",
+          JSON.stringify(obMap),
+        );
+      }
       setShowForm(false);
-      setForm({ name: "", phone: "", address: "" });
+      setForm({
+        name: "",
+        phone: "",
+        address: "",
+        openingDue: "",
+        openingAdvance: "",
+      });
       setEditId(null);
       await load();
     } catch {
@@ -453,7 +505,17 @@ export default function PartiesPage({
   };
 
   const handleEditFromDetail = (party: Party) => {
-    setForm({ name: party.name, phone: party.phone, address: party.address });
+    const ob: Record<string, { due: number; advance: number }> = JSON.parse(
+      localStorage.getItem("ktp_party_opening_balance") || "{}",
+    );
+    const obEntry = ob[party.id.toString()] || { due: 0, advance: 0 };
+    setForm({
+      name: party.name,
+      phone: party.phone,
+      address: party.address,
+      openingDue: obEntry.due ? String(obEntry.due) : "",
+      openingAdvance: obEntry.advance ? String(obEntry.advance) : "",
+    });
     setEditId(party.id);
     setSelectedParty(null);
     setShowForm(true);
@@ -506,7 +568,13 @@ export default function PartiesPage({
             onClick={() => {
               setShowForm(false);
               setEditId(null);
-              setForm({ name: "", phone: "", address: "" });
+              setForm({
+                name: "",
+                phone: "",
+                address: "",
+                openingDue: "",
+                openingAdvance: "",
+              });
             }}
           >
             <ArrowLeft className="w-5 h-5" />
@@ -543,6 +611,30 @@ export default function PartiesPage({
               }
               rows={2}
             />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Opening Due (₹)</Label>
+              <Input
+                type="number"
+                value={form.openingDue}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, openingDue: e.target.value }))
+                }
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <Label>Opening Advance (₹)</Label>
+              <Input
+                type="number"
+                value={form.openingAdvance}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, openingAdvance: e.target.value }))
+                }
+                placeholder="0"
+              />
+            </div>
           </div>
           <Button
             onClick={handleSave}
@@ -599,8 +691,19 @@ export default function PartiesPage({
           const udharMap: Record<string, number> = JSON.parse(
             localStorage.getItem("ktp_party_udhar") || "{}",
           );
+          const openingMapList: Record<
+            string,
+            { due: number; advance: number }
+          > = JSON.parse(
+            localStorage.getItem("ktp_party_opening_balance") || "{}",
+          );
+          const openingDueList = openingMapList[p.id.toString()]?.due || 0;
+          const openingAdvList = openingMapList[p.id.toString()]?.advance || 0;
           const totalDue =
-            Number(p.creditBalance) + (udharMap[p.id.toString()] || 0);
+            Number(p.creditBalance) +
+            (udharMap[p.id.toString()] || 0) +
+            openingDueList -
+            openingAdvList;
           return (
             <button
               key={p.id.toString()}
