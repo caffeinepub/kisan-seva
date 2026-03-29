@@ -14,7 +14,7 @@ import {
   Wrench,
   X,
 } from "lucide-react";
-import { TrendingUp } from "lucide-react";
+import { Package, TrendingUp } from "lucide-react";
 import { type Page, useApp } from "../App";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 
@@ -40,6 +40,11 @@ export default function Sidebar({ open, onClose }: Props) {
     { key: "notifications", label: t.notifications, icon: Bell },
     { key: "cashFlow", label: t.cashFlow, icon: TrendingUp },
     { key: "balanceSheet", label: t.balanceSheet, icon: BarChart2 },
+    {
+      key: "equipment" as Page,
+      label: (t as any).equipment || "Equipment",
+      icon: Package,
+    },
   ];
 
   const handleNav = (key: Page) => {

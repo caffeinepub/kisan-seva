@@ -18,6 +18,7 @@ import BookingsPage from "./pages/BookingsPage";
 import CashFlowPage from "./pages/CashFlowPage";
 import Dashboard from "./pages/Dashboard";
 import DriversPage from "./pages/DriversPage";
+import EquipmentPage from "./pages/EquipmentPage";
 import ExpensesPage from "./pages/ExpensesPage";
 import LoginPage from "./pages/LoginPage";
 import NotificationsPage from "./pages/NotificationsPage";
@@ -46,7 +47,8 @@ export type Page =
   | "allTransactions"
   | "paymentIn"
   | "cashFlow"
-  | "balanceSheet";
+  | "balanceSheet"
+  | "equipment";
 
 type AppCtx = {
   lang: Lang;
@@ -335,6 +337,8 @@ export default function App() {
             onOpenSidebar={() => setSidebarOpen(true)}
           />
         );
+      case "equipment":
+        return <EquipmentPage onOpenSidebar={() => setSidebarOpen(true)} />;
       default:
         return null;
     }

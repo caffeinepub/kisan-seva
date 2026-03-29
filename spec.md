@@ -1,48 +1,35 @@
 # Kisan Seva
 
 ## Current State
-- CashFlowPage.tsx uses hardcoded "In:" and "Out:" strings in summary cards and filter buttons (not translated)
-- ReportPage.tsx has: Party Statement, Seva Earnings, By Tractor (expenses only), Monthly Summary, Driver Report
-- Driver Report shows transactions, hours, estimated pay per driver per month
-- Transactions saved to ktp_saved_transactions with: id, date, time, partyId, partyName, workType, hours, minutes, rate, amount, discount, receivedAmount, paymentMethod, driverId (NO tractorId/tractorName saved)
-- Expenses tracked per tractor (maintenance), per driver (driverPayment)
-- i18n.ts has 3 languages: Gujarati, Hindi, English
+- TractorsPage: Add/edit tractor with name and model fields only (no purchase price). No sell functionality.
+- BalanceSheetPage: Shows total tractor count, income vs expenses, net profit/loss, party-wise dues. No asset purchase/sell tracking.
+- No Equipment management exists anywhere.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Translation keys: cashFlowIn (આવક/आवक/In), cashFlowOut (જાવક/जावक/Out) in i18n.ts for all 3 languages
-- Translation keys for new report views in all 3 languages:
-  - driverPerformanceReport, driverWiseProfit, tractorWiseReport, tractorWiseProfit, serviceWiseReport
-  - dateFilterLabel, thisMonthFilter, thisYearFilter, customRangeFilter
-  - presentLabel, absentLabel, halfDayLabel, attendanceCount, revenueGenerated, netProfit, salaryPayout, maintenanceCost
-- New sub views in ReportPage:
-  1. **Driver Performance Report** - per driver: transaction count, total hours, total earnings + attendance (Present/Absent/Half Day count)
-  2. **Driver-wise Profit** - per driver: revenue generated (from transactions) - salary payout (from expenses driverPayment) = net profit
-  3. **Tractor-wise Report** - per tractor: transaction count, total hours, total revenue
-  4. **Tractor-wise Profit** - per tractor: revenue - maintenance expenses = net profit  
-  5. **Service-wise Report** - per service type (workType): total transactions, total hours, total amount
-- Date range filter (This Month / This Year / Custom) on all 5 new report views
-- Save tractorId + tractorName into ktp_saved_transactions when saving a transaction
+- **Purchase Price field** in TractorsPage add/edit form (optional, numeric)
+- **Sell Tractor** button on each tractor card in TractorsPage — opens a form with sell price and sell date; marks tractor as "Sold"; saves sell record to localStorage
+- **Tractor Asset History** section in BalanceSheetPage: shows each tractor with purchase price, sell price (if sold), date bought, date sold, net gain/loss
+- **Equipment Page** (new page `EquipmentPage`): Add/edit/delete equipment items (name, purchase price, purchase date); Sell equipment (sell price, sell date); History per equipment item
+- Equipment accessible from side drawer as "Equipment"
+- New `Page` type: `"equipment"`
+- **Balance Sheet Assets section** upgraded: Tractors asset value (total purchase - sold), Equipment asset value (total purchase - sold), each shown separately with totals
 
 ### Modify
-- CashFlowPage.tsx: Replace hardcoded "In:" with t.cashFlowIn and "Out:" with t.cashFlowOut; also update filter buttons "In (+)" → `${t.cashFlowIn} (+)` and "Out (-)" → `${t.cashFlowOut} (-)`
-- ReportPage.tsx: Add 5 new menu items under appropriate sections + implement their sub views
-- TransactionsPage.tsx: Add tractorId and tractorName to the object saved in ktp_saved_transactions
+- TractorsPage: Add `purchasePrice` and `purchaseDate` fields to tractor form; save to localStorage key `ktp_tractor_assets`
+- TractorsPage: Add "Sell" button per tractor card; on sell, record sell price + date to `ktp_tractor_assets`
+- BalanceSheetPage: Replace basic tractor count with full asset valuation from `ktp_tractor_assets` + `ktp_equipment_assets`
+- App.tsx: Add `"equipment"` to Page type; add sidebar item; add route rendering `<EquipmentPage />`
+- Sidebar: Add "Equipment" link
 
 ### Remove
 - Nothing removed
 
 ## Implementation Plan
-1. Add cashFlowIn/cashFlowOut + new report translation keys to i18n.ts (all 3 languages)
-2. Update CashFlowPage.tsx to use t.cashFlowIn and t.cashFlowOut
-3. Update TransactionsPage.tsx to save tractorId + tractorName in ktp_saved_transactions  
-4. Add 5 new sub view components in ReportPage.tsx:
-   - Each reads from ktp_saved_transactions + expenses data
-   - Each has date range filter (This Month / This Year / Custom range with from/to date pickers)
-   - Tractor-wise Report/Profit reads tractorId from transactions (after fix)
-   - Driver Performance combines attendance (from driverAttendance utils) + transaction data
-   - Driver-wise Profit: sum transaction amounts per driver (as revenue) - sum driverPayment expenses per driver = net profit
-   - Tractor-wise Profit: sum transaction amounts per tractor - sum maintenance expenses per tractor = net profit
-   - Service-wise: group transactions by workType, sum count/hours/amount
-5. Add 5 new menu items to the sections array in ReportPage main view
+1. Add `purchasePrice: number, purchaseDate: string, soldPrice?: number, soldDate?: string, sold: boolean` tracking to localStorage `ktp_tractor_assets` (keyed by tractor id) in TractorsPage
+2. Add purchase price + date fields in tractor add/edit form
+3. Add "Sell" button per tractor → modal with sell price + date → save + mark sold
+4. Create `EquipmentPage.tsx` with full CRUD + sell functionality, data in `ktp_equipment_assets` localStorage
+5. Update `BalanceSheetPage.tsx` to compute asset values from both `ktp_tractor_assets` and `ktp_equipment_assets`, show history section
+6. Update `App.tsx` Page type + routing + sidebar
