@@ -21,7 +21,10 @@ import {
   type backendInterface,
 } from "../backend";
 import PartySelector from "../components/PartySelector";
+import VoiceInputButton from "../components/VoiceInputButton";
+import { useVoiceInput } from "../hooks/useVoiceInput";
 import { CASH_PARTY_ID } from "../lib/cashParty";
+import { parseVoiceTranscript } from "../lib/voiceParser";
 import { getStoredServices } from "./ServicesPage";
 import { getNextGlobalCounter } from "./TransactionsPage";
 
@@ -70,6 +73,14 @@ export default function BookingsPage({
   const [form, setForm] = useState<SimpleForm>(emptyForm);
   const [editId, setEditId] = useState<bigint | null>(null);
   const [saving, setSaving] = useState(false);
+  const {
+    isSupported: voiceSupported,
+    isListening,
+    transcript,
+    startListening,
+    stopListening,
+    resetTranscript,
+  } = useVoiceInput();
 
   const serviceTypes = getStoredServices().map((s) => s.name);
   const allServiceTypes =
@@ -106,6 +117,30 @@ export default function BookingsPage({
     const party = parties.find((p) => p.id.toString() === form.partyId);
     if (party) setForm((f) => ({ ...f, partyMobile: party.phone || "" }));
   }, [form.partyId, parties]);
+  // Voice transcript processing
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional
+  useEffect(() => {
+    if (!transcript || !showForm || editId) return;
+    const serviceNames = getStoredServices().map((s) => s.name);
+    const partyList = parties.map((p) => ({
+      id: p.id.toString(),
+      name: p.name,
+    }));
+    const parsed = parseVoiceTranscript(transcript, partyList, serviceNames);
+    if (parsed.partyId) {
+      setForm((f) => ({ ...f, partyId: parsed.partyId! }));
+    } else if (parsed.partyName) {
+      const found = parties.find(
+        (p) => p.name.toLowerCase() === parsed.partyName!.toLowerCase(),
+      );
+      if (found) setForm((f) => ({ ...f, partyId: found.id.toString() }));
+    }
+    if (parsed.serviceType)
+      setForm((f) => ({ ...f, serviceType: parsed.serviceType! }));
+    if (parsed.notes) setForm((f) => ({ ...f, notes: parsed.notes! }));
+    resetTranscript();
+    toast.success("Voice input applied — please review fields");
+  }, [transcript]);
 
   const handleSave = async () => {
     if (!form.partyId || !form.serviceType) {
@@ -320,6 +355,16 @@ export default function BookingsPage({
           >
             {saving ? t.savingText : t.save}
           </Button>
+          {/* Voice Input Button */}
+          {!editId && (
+            <VoiceInputButton
+              isListening={isListening}
+              isSupported={voiceSupported}
+              onStart={() => startListening("hi-IN")}
+              onStop={stopListening}
+              label="Voice"
+            />
+          )}
         </div>
       </div>
     );

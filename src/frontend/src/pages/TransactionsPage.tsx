@@ -1,4 +1,11 @@
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -8,16 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  ArrowLeft,
-  Camera,
-  Menu,
-  Mic,
-  Plus,
-  Share2,
-  Trash2,
-  X,
-} from "lucide-react";
+import { ArrowLeft, Camera, Menu, Plus, Share2, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useApp } from "../App";
@@ -30,8 +28,11 @@ import {
   type backendInterface,
 } from "../backend";
 import PartySelector from "../components/PartySelector";
+import VoiceInputButton from "../components/VoiceInputButton";
+import { useVoiceInput } from "../hooks/useVoiceInput";
 import { saveCashFlowEntries } from "../lib/cashFlowUtils";
 import { CASH_PARTY_ID } from "../lib/cashParty";
+import { parseVoiceTranscript } from "../lib/voiceParser";
 import { getStoredServices } from "./ServicesPage";
 
 type Props = {
@@ -466,6 +467,18 @@ export default function TransactionsPage({
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [saving, setSaving] = useState(false);
   const [savedOnce, setSavedOnce] = useState(false);
+  const [showVoiceConfirm, setShowVoiceConfirm] = useState(false);
+  const [voiceParsed, setVoiceParsed] = useState<
+    import("../lib/voiceParser").ParsedVoiceData | null
+  >(null);
+  const {
+    isSupported: voiceSupported,
+    isListening,
+    transcript,
+    startListening,
+    stopListening,
+    resetTranscript,
+  } = useVoiceInput();
   const [bookingRef, setBookingRef] = useState<string | null>(null);
   const [showInvoice, setShowInvoice] = useState(false);
   const [invoiceData, setInvoiceData] = useState<InvoiceData | null>(null);
@@ -561,6 +574,36 @@ export default function TransactionsPage({
     }
   }, [prefill, onClearPrefill]);
 
+  // Voice input: parse transcript and apply to form
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional
+  useEffect(() => {
+    if (!transcript) return;
+    const serviceNames = workTypes.map((s) => s.name);
+    const partyList = parties.map((p) => ({
+      id: p.id.toString(),
+      name: p.name,
+    }));
+    const parsed = parseVoiceTranscript(transcript, partyList, serviceNames);
+    setVoiceParsed(parsed);
+    // Apply fields immediately
+    if (parsed.partyId) {
+      setPartyId(parsed.partyId);
+    } else if (parsed.partyName) {
+      const found = parties.find(
+        (p) => p.name.toLowerCase() === parsed.partyName!.toLowerCase(),
+      );
+      if (found) setPartyId(found.id.toString());
+    }
+    if (parsed.serviceType) setWorkType(parsed.serviceType);
+    if (parsed.hours !== undefined) setHours(parsed.hours);
+    if (parsed.minutes !== undefined) setMinutes(parsed.minutes);
+    if (parsed.amount !== undefined) setAmount(String(parsed.amount));
+    if (parsed.paymentType === "upi") setPaymentMethod(PaymentMethod.upi);
+    else if (parsed.paymentType === "cash")
+      setPaymentMethod(PaymentMethod.cash);
+    setShowVoiceConfirm(true);
+    resetTranscript();
+  }, [transcript]);
   useEffect(() => {
     const service = workTypes.find((s) => s.name === workType);
     if (service && service.rate > 0 && (hours > 0 || minutes > 0)) {
@@ -876,9 +919,7 @@ export default function TransactionsPage({
         <h1 className="font-bold text-base text-gray-900 dark:text-gray-100">
           {t.newTransaction}
         </h1>
-        <button type="button" className="p-1 text-gray-400 dark:text-gray-500">
-          <Mic className="w-5 h-5" />
-        </button>
+        <div className="w-8" />
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 pb-20">
@@ -1443,6 +1484,91 @@ export default function TransactionsPage({
           }}
         />
       )}
+      {/* Voice Input Button - only when form is in new entry mode */}
+      {!savedOnce && (
+        <VoiceInputButton
+          isListening={isListening}
+          isSupported={voiceSupported}
+          onStart={() => startListening("hi-IN")}
+          onStop={stopListening}
+          label="Voice"
+        />
+      )}
+
+      {/* Voice Confirmation Dialog */}
+      <Dialog open={showVoiceConfirm} onOpenChange={setShowVoiceConfirm}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>🎙 Voice Input Applied</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 text-sm">
+            {voiceParsed && (
+              <>
+                {voiceParsed.partyName && (
+                  <p>
+                    👤 <strong>Party:</strong> {voiceParsed.partyName}
+                  </p>
+                )}
+                {voiceParsed.serviceType && (
+                  <p>
+                    🌾 <strong>Service:</strong> {voiceParsed.serviceType}
+                  </p>
+                )}
+                {voiceParsed.hours !== undefined && (
+                  <p>
+                    ⏱ <strong>Hours:</strong> {voiceParsed.hours}h{" "}
+                    {voiceParsed.minutes ?? 0}m
+                  </p>
+                )}
+                {voiceParsed.amount !== undefined && (
+                  <p>
+                    💰 <strong>Amount:</strong> ₹{voiceParsed.amount}
+                  </p>
+                )}
+                {voiceParsed.paymentType && (
+                  <p>
+                    💳 <strong>Payment:</strong>{" "}
+                    {voiceParsed.paymentType.toUpperCase()}
+                  </p>
+                )}
+                {voiceParsed.notes && (
+                  <p>
+                    📝 <strong>Notes:</strong> {voiceParsed.notes}
+                  </p>
+                )}
+                {!voiceParsed.partyName &&
+                  !voiceParsed.serviceType &&
+                  !voiceParsed.hours &&
+                  !voiceParsed.amount && (
+                    <p className="text-gray-400 italic">
+                      Could not detect fields. Please fill manually.
+                    </p>
+                  )}
+              </>
+            )}
+            <p className="text-xs text-gray-500 pt-1">
+              Review the filled fields and make any changes before saving.
+            </p>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowVoiceConfirm(false)}
+              className="flex-1"
+              data-ocid="voice.dialog.cancel_button"
+            >
+              Edit
+            </Button>
+            <Button
+              onClick={() => setShowVoiceConfirm(false)}
+              className="flex-1 bg-green-700 hover:bg-green-800"
+              data-ocid="voice.dialog.confirm_button"
+            >
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
