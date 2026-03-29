@@ -60,10 +60,11 @@ export function useLocalAuth() {
     securityAnswer: string;
   }): boolean {
     const accounts = getAccounts();
-    if (accounts.find((a) => a.mobile === data.mobile)) return false;
+    if (accounts.find((a) => a.mobile.trim() === data.mobile.trim()))
+      return false;
     accounts.push({
       name: data.name,
-      mobile: data.mobile,
+      mobile: data.mobile.trim(),
       password: data.password,
       pin: data.pin,
       securityQuestion: data.securityQuestion,
@@ -78,7 +79,7 @@ export function useLocalAuth() {
     password: string,
   ): "ok" | "mobile_not_found" | "wrong_password" {
     const accounts = getAccounts();
-    const byMobile = accounts.find((a) => a.mobile === mobile);
+    const byMobile = accounts.find((a) => a.mobile.trim() === mobile.trim());
     if (!byMobile) return "mobile_not_found";
     if (byMobile.password !== password) return "wrong_password";
     const newSession = {
@@ -92,13 +93,13 @@ export function useLocalAuth() {
 
   function verifyPin(mobile: string, pin: string): boolean {
     const accounts = getAccounts();
-    const account = accounts.find((a) => a.mobile === mobile);
+    const account = accounts.find((a) => a.mobile.trim() === mobile.trim());
     return account?.pin === pin;
   }
 
   function changePin(mobile: string, oldPin: string, newPin: string): boolean {
     const accounts = getAccounts();
-    const idx = accounts.findIndex((a) => a.mobile === mobile);
+    const idx = accounts.findIndex((a) => a.mobile.trim() === mobile.trim());
     if (idx === -1) return false;
     if (accounts[idx].pin !== oldPin) return false;
     accounts[idx] = { ...accounts[idx], pin: newPin };
@@ -112,7 +113,7 @@ export function useLocalAuth() {
     newPin: string,
   ): boolean {
     const accounts = getAccounts();
-    const idx = accounts.findIndex((a) => a.mobile === mobile);
+    const idx = accounts.findIndex((a) => a.mobile.trim() === mobile.trim());
     if (idx === -1) return false;
     if (
       accounts[idx].securityAnswer.trim().toLowerCase() !==
@@ -140,7 +141,7 @@ export function useLocalAuth() {
     newPassword: string,
   ): boolean {
     const accounts = getAccounts();
-    const idx = accounts.findIndex((a) => a.mobile === mobile);
+    const idx = accounts.findIndex((a) => a.mobile.trim() === mobile.trim());
     if (idx === -1) return false;
     const account = accounts[idx];
     if (
@@ -153,15 +154,31 @@ export function useLocalAuth() {
     return true;
   }
 
+  function changePasswordWithOldPw(
+    mobile: string,
+    oldPassword: string,
+    newPassword: string,
+  ): boolean {
+    const accounts = getAccounts();
+    const idx = accounts.findIndex((a) => a.mobile.trim() === mobile.trim());
+    if (idx === -1) return false;
+    if (accounts[idx].password !== oldPassword) return false;
+    accounts[idx] = { ...accounts[idx], password: newPassword };
+    saveAccounts(accounts);
+    return true;
+  }
+
   function getSecurityQuestion(mobile: string): string | null {
     const accounts = getAccounts();
-    const account = accounts.find((a) => a.mobile === mobile);
+    const account = accounts.find((a) => a.mobile.trim() === mobile.trim());
     return account?.securityQuestion ?? null;
   }
 
   function deleteAccount(mobile: string, pin: string): boolean {
     const accounts = getAccounts();
-    const idx = accounts.findIndex((a) => a.mobile === mobile && a.pin === pin);
+    const idx = accounts.findIndex(
+      (a) => a.mobile.trim() === mobile.trim() && a.pin === pin,
+    );
     if (idx === -1) return false;
     accounts.splice(idx, 1);
     saveAccounts(accounts);
@@ -181,6 +198,7 @@ export function useLocalAuth() {
     guestLogin,
     logout,
     changePassword,
+    changePasswordWithOldPw,
     getSecurityQuestion,
     deleteAccount,
     verifyPin,

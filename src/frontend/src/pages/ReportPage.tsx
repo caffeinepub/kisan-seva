@@ -826,6 +826,84 @@ export default function ReportPage({ actor, onOpenSidebar }: Props) {
     );
   }
 
+  const handleDownloadReportPdf = () => {
+    const totalIncome = payments.reduce((s, p) => s + Number(p.amount || 0), 0);
+    const totalExpenses = expenses.reduce(
+      (s, e) => s + Number(e.amount || 0),
+      0,
+    );
+    const getPartyName = (id: string) => {
+      if (id === "cash") return "Cash";
+      return parties.find((p) => p.id.toString() === id)?.name || id;
+    };
+
+    const rows = payments
+      .slice()
+      .reverse()
+      .map(
+        (p) => `
+    <tr>
+      <td>${(p as any).txNumber || ""}</td>
+      <td>${getPartyName(String((p as any).partyId || ""))}</td>
+      <td>${new Date(Number(p.date || 0)).toLocaleDateString()}</td>
+      <td style="text-align:right">₹${p.amount || 0}</td>
+      <td style="text-align:right;color:#16a34a">₹${(p as any).receivedAmount || 0}</td>
+      <td style="text-align:right;color:${(Number(p.amount || 0) - Number((p as any).receivedAmount || 0)) > 0 ? "#dc2626" : "#16a34a"}">₹${Math.max(0, Number(p.amount || 0) - Number((p as any).receivedAmount || 0))}</td>
+    </tr>`,
+      )
+      .join("");
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>Kisan Seva - Report</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; color: #222; font-size: 12px; }
+  h2 { color: #15803d; margin-bottom: 4px; }
+  .summary { display: flex; gap: 20px; margin: 12px 0; flex-wrap: wrap; }
+  .card { border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px 16px; min-width: 120px; }
+  .card .label { color: #6b7280; font-size: 11px; }
+  .card .val { font-size: 16px; font-weight: bold; }
+  table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+  th { background: #15803d; color: white; padding: 8px 6px; text-align: left; font-size: 11px; }
+  td { padding: 6px; border-bottom: 1px solid #f3f4f6; }
+  tr:nth-child(even) { background: #f9fafb; }
+  .footer { text-align: center; font-size: 10px; color: #9ca3af; margin-top: 20px; }
+  @media print { body { margin: 10px; } }
+</style>
+</head>
+<body>
+<h2>🌾 Kisan Seva — Transaction Report</h2>
+<p style="color:#6b7280">Generated: ${new Date().toLocaleString()}</p>
+<div class="summary">
+  <div class="card"><div class="label">Total Income</div><div class="val" style="color:#16a34a">₹${totalIncome.toLocaleString()}</div></div>
+  <div class="card"><div class="label">Total Expenses</div><div class="val" style="color:#dc2626">₹${totalExpenses.toLocaleString()}</div></div>
+  <div class="card"><div class="label">Net Profit</div><div class="val" style="color:${totalIncome - totalExpenses >= 0 ? "#16a34a" : "#dc2626"}">₹${(totalIncome - totalExpenses).toLocaleString()}</div></div>
+  <div class="card"><div class="label">Transactions</div><div class="val">${payments.length}</div></div>
+</div>
+<table>
+  <thead>
+    <tr><th>#</th><th>Party</th><th>Date</th><th>Bill Amt</th><th>Received</th><th>Balance</th></tr>
+  </thead>
+  <tbody>
+    ${rows || '<tr><td colspan="6" style="text-align:center;color:#9ca3af">No transactions</td></tr>'}
+  </tbody>
+</table>
+<div class="footer">Kisan Seva — Powered by Caffeine</div>
+</body>
+</html>`;
+
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(() => {
+      win.print();
+    }, 300);
+  };
+
   // ── Main Report Menu ──────────────────────────────────────────────────────
   const sections = [
     {
@@ -913,7 +991,14 @@ export default function ReportPage({ actor, onOpenSidebar }: Props) {
         <h1 className="font-bold text-lg text-gray-900 dark:text-gray-100">
           {t.reportTitle}
         </h1>
-        <div className="w-8" />
+        <button
+          type="button"
+          onClick={handleDownloadReportPdf}
+          className="bg-red-500 text-white px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1"
+          data-ocid="report.pdf.button"
+        >
+          📄 PDF
+        </button>
       </div>
 
       {/* This Month Summary Card */}

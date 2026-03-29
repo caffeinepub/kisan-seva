@@ -158,6 +158,70 @@ Payment: ${methodLabel(data.paymentMethod)}${data.paymentMethod === PaymentMetho
       .then(() => toast.success("Copied!"));
   };
 
+  const handleDownloadPdf = () => {
+    const netAmount = data.amount - data.discount;
+    const bal = Math.max(0, netAmount - data.receivedAmount);
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>Invoice ${data.txNumber}</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 400px; margin: 20px auto; color: #222; }
+  .header { background: #15803d; color: white; padding: 16px; border-radius: 8px 8px 0 0; }
+  .header h2 { margin: 0; font-size: 18px; }
+  .header p { margin: 2px 0; font-size: 12px; opacity: 0.85; }
+  .section { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; margin: 10px 0; }
+  .row { display: flex; justify-content: space-between; font-size: 13px; margin: 4px 0; }
+  .label { color: #6b7280; }
+  .value { font-weight: 600; }
+  .total-row { border-top: 2px solid #15803d; padding-top: 8px; margin-top: 8px; }
+  .balance { color: ${bal > 0 ? "#dc2626" : "#16a34a"}; font-size: 15px; font-weight: bold; }
+  .footer { text-align: center; font-size: 11px; color: #9ca3af; margin-top: 16px; }
+  @media print { body { margin: 0; } }
+</style>
+</head>
+<body>
+<div class="header">
+  <h2>🧾 Invoice / बिल</h2>
+  <p>${data.txNumber} | ${data.businessName}</p>
+  <p>📞 ${data.businessMobile}</p>
+</div>
+<div class="section">
+  <div class="row"><span class="label">Party:</span><span class="value">${data.partyName}</span></div>
+  ${data.partyMobile ? `<div class="row"><span class="label">Mobile:</span><span class="value">${data.partyMobile}</span></div>` : ""}
+  ${data.partyAddress ? `<div class="row"><span class="label">Address:</span><span class="value">${data.partyAddress}</span></div>` : ""}
+  <div class="row"><span class="label">Date:</span><span class="value">${dateTimeStr}</span></div>
+</div>
+<div class="section">
+  <div style="font-weight:600;margin-bottom:6px;color:#1d4ed8">Service Details</div>
+  <div class="row"><span class="label">Service:</span><span class="value">${data.workType}</span></div>
+  <div class="row"><span class="label">Time:</span><span class="value">${hoursMinStr}</span></div>
+  ${data.rate > 0 ? `<div class="row"><span class="label">Rate:</span><span class="value">₹${data.rate}/hr</span></div>` : ""}
+</div>
+<div class="section">
+  <div style="font-weight:600;margin-bottom:6px">Payment Summary</div>
+  <div class="row"><span class="label">Total Amount:</span><span class="value">₹${data.amount}</span></div>
+  ${data.discount > 0 ? `<div class="row"><span class="label">Discount:</span><span class="value" style="color:#16a34a">- ₹${data.discount}</span></div>` : ""}
+  ${data.discount > 0 ? `<div class="row"><span class="label">Net Amount:</span><span class="value">₹${netAmount}</span></div>` : ""}
+  <div class="row"><span class="label">Received:</span><span class="value" style="color:#16a34a">₹${data.receivedAmount}</span></div>
+  <div class="row total-row"><span class="label">Balance Due:</span><span class="balance">₹${bal}</span></div>
+  <div class="row"><span class="label">Payment Method:</span><span class="value">${methodLabel(data.paymentMethod)}</span></div>
+  ${data.paymentMethod === PaymentMethod.split ? `<div class="row"><span class="label">Cash / UPI:</span><span class="value">₹${data.splitCash || 0} / ₹${data.splitUpi || 0}</span></div>` : ""}
+</div>
+<div class="footer">Kisan Seva — Powered by Caffeine</div>
+</body>
+</html>`;
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(() => {
+      win.print();
+    }, 300);
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-end justify-center">
       <div className="bg-white dark:bg-gray-900 w-full max-w-md rounded-t-2xl max-h-[90vh] overflow-y-auto">
@@ -339,6 +403,15 @@ Payment: ${methodLabel(data.paymentMethod)}${data.paymentMethod === PaymentMetho
               </button>
             )}
           </div>
+
+          {/* PDF Download */}
+          <button
+            type="button"
+            onClick={handleDownloadPdf}
+            className="w-full bg-red-500 text-white py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 mt-1"
+          >
+            📄 Download PDF
+          </button>
 
           {/* Action Buttons */}
           <div className="grid grid-cols-2 gap-2 pt-1">

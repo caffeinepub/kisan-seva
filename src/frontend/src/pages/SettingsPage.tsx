@@ -14,6 +14,8 @@ import {
   ArrowLeft,
   Cloud,
   Download,
+  Eye,
+  EyeOff,
   Lock,
   LogOut,
   Moon,
@@ -41,7 +43,7 @@ export default function SettingsPage({ actor }: Props) {
     setDarkMode,
     currentUser,
   } = useApp();
-  const { deleteAccount } = useLocalAuth();
+  const { deleteAccount, changePasswordWithOldPw, changePin } = useLocalAuth();
   const [profile, setProfile] = useState({
     ownerName: "",
     businessName: "",
@@ -60,6 +62,23 @@ export default function SettingsPage({ actor }: Props) {
 
   // File input ref for restore
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // --- Change Password state ---
+  const [cpOld, setCpOld] = useState("");
+  const [cpNew, setCpNew] = useState("");
+  const [cpConfirm, setCpConfirm] = useState("");
+  const [cpShowOld, setCpShowOld] = useState(false);
+  const [cpShowNew, setCpShowNew] = useState(false);
+  const [cpShowConfirm, setCpShowConfirm] = useState(false);
+  const [cpError, setCpError] = useState("");
+  const [cpSuccess, setCpSuccess] = useState("");
+
+  // --- Change PIN state ---
+  const [pinOld, setPinOld] = useState("");
+  const [pinNew, setPinNew] = useState("");
+  const [pinConfirm, setPinConfirm] = useState("");
+  const [pinError, setPinError] = useState("");
+  const [pinSuccess, setPinSuccess] = useState("");
 
   useEffect(() => {
     actor.getCallerUserProfile().then((p) => {
@@ -93,7 +112,6 @@ export default function SettingsPage({ actor }: Props) {
         try {
           backupData[key] = JSON.parse(localStorage.getItem(key) || "null");
         } catch {
-          // Store raw string values as-is (they can't be JSON.parsed)
           backupData[key] = localStorage.getItem(key);
         }
       }
@@ -123,7 +141,6 @@ export default function SettingsPage({ actor }: Props) {
         const data = JSON.parse(ev.target?.result as string);
         for (const [key, value] of Object.entries(data)) {
           if (key.startsWith("ktp_")) {
-            // If value is already a string, store it directly to avoid double-stringification
             if (typeof value === "string") {
               localStorage.setItem(key, value);
             } else {
@@ -138,7 +155,6 @@ export default function SettingsPage({ actor }: Props) {
       }
     };
     reader.readAsText(file);
-    // Reset file input
     e.target.value = "";
   };
 
@@ -152,6 +168,54 @@ export default function SettingsPage({ actor }: Props) {
     }
     setDeleteDialogOpen(false);
     logout();
+  };
+
+  // --- Change Password handler ---
+  const handleChangePassword = () => {
+    setCpError("");
+    setCpSuccess("");
+    if (cpNew.length < 8) {
+      setCpError("New password must be at least 8 characters");
+      return;
+    }
+    if (cpNew !== cpConfirm) {
+      setCpError("Passwords do not match");
+      return;
+    }
+    const mobile = currentUser?.mobile ?? "";
+    const ok = changePasswordWithOldPw(mobile, cpOld, cpNew);
+    if (!ok) {
+      setCpError("Current password is incorrect");
+      return;
+    }
+    setCpSuccess("Password updated successfully ✓");
+    setCpOld("");
+    setCpNew("");
+    setCpConfirm("");
+  };
+
+  // --- Change PIN handler ---
+  const handleChangePin = () => {
+    setPinError("");
+    setPinSuccess("");
+    if (pinNew.length !== 4) {
+      setPinError("New PIN must be exactly 4 digits");
+      return;
+    }
+    if (pinNew !== pinConfirm) {
+      setPinError("PINs do not match");
+      return;
+    }
+    const mobile = currentUser?.mobile ?? "";
+    const ok = changePin(mobile, pinOld, pinNew);
+    if (!ok) {
+      setPinError("Current PIN is incorrect");
+      return;
+    }
+    setPinSuccess("PIN updated successfully ✓");
+    setPinOld("");
+    setPinNew("");
+    setPinConfirm("");
   };
 
   return (
@@ -242,6 +306,236 @@ export default function SettingsPage({ actor }: Props) {
             />
           </div>
         </div>
+
+        {/* Security — Change Password & Change PIN */}
+        {!isGuest && (
+          <div>
+            <h2 className="font-semibold text-gray-800 dark:text-gray-200 mb-3">
+              🔐 {(t as any).security || "Security"}
+            </h2>
+
+            {/* Change Password card */}
+            <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-4 mb-3">
+              <h3 className="font-medium text-gray-800 dark:text-gray-200 mb-3 text-sm">
+                {(t as any).changePassword || "Change Password"}
+              </h3>
+              <div className="flex flex-col gap-3">
+                {/* Current Password */}
+                <div>
+                  <Label className="text-gray-700 dark:text-gray-300 text-xs">
+                    {(t as any).currentPassword || "Current Password"}
+                  </Label>
+                  <div className="relative mt-1">
+                    <Input
+                      type={cpShowOld ? "text" : "password"}
+                      value={cpOld}
+                      onChange={(e) => {
+                        setCpOld(e.target.value);
+                        setCpError("");
+                        setCpSuccess("");
+                      }}
+                      className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 pr-10"
+                      placeholder="••••••••"
+                      data-ocid="settings.input"
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                      onClick={() => setCpShowOld((v) => !v)}
+                    >
+                      {cpShowOld ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+                {/* New Password */}
+                <div>
+                  <Label className="text-gray-700 dark:text-gray-300 text-xs">
+                    {(t as any).newPassword || "New Password"}
+                  </Label>
+                  <div className="relative mt-1">
+                    <Input
+                      type={cpShowNew ? "text" : "password"}
+                      value={cpNew}
+                      onChange={(e) => {
+                        setCpNew(e.target.value);
+                        setCpError("");
+                        setCpSuccess("");
+                      }}
+                      className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 pr-10"
+                      placeholder="Min 8 characters"
+                      data-ocid="settings.input"
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                      onClick={() => setCpShowNew((v) => !v)}
+                    >
+                      {cpShowNew ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+                {/* Confirm New Password */}
+                <div>
+                  <Label className="text-gray-700 dark:text-gray-300 text-xs">
+                    {(t as any).confirmNewPassword || "Confirm New Password"}
+                  </Label>
+                  <div className="relative mt-1">
+                    <Input
+                      type={cpShowConfirm ? "text" : "password"}
+                      value={cpConfirm}
+                      onChange={(e) => {
+                        setCpConfirm(e.target.value);
+                        setCpError("");
+                        setCpSuccess("");
+                      }}
+                      className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 pr-10"
+                      placeholder="Re-enter new password"
+                      data-ocid="settings.input"
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                      onClick={() => setCpShowConfirm((v) => !v)}
+                    >
+                      {cpShowConfirm ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+                {cpError && (
+                  <p
+                    className="text-red-500 text-xs"
+                    data-ocid="settings.error_state"
+                  >
+                    {cpError}
+                  </p>
+                )}
+                {cpSuccess && (
+                  <p
+                    className="text-green-600 text-xs font-medium"
+                    data-ocid="settings.success_state"
+                  >
+                    {cpSuccess}
+                  </p>
+                )}
+                <Button
+                  onClick={handleChangePassword}
+                  disabled={!cpOld || !cpNew || !cpConfirm}
+                  className="bg-green-700 hover:bg-green-800 text-white w-full rounded-lg disabled:opacity-50"
+                  data-ocid="settings.save_button"
+                >
+                  {(t as any).updatePassword || "Update Password"}
+                </Button>
+              </div>
+            </div>
+
+            {/* Change PIN card */}
+            <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-4">
+              <h3 className="font-medium text-gray-800 dark:text-gray-200 mb-3 text-sm">
+                {(t as any).changePin || "Change PIN"}
+              </h3>
+              <div className="flex flex-col gap-3">
+                <div>
+                  <Label className="text-gray-700 dark:text-gray-300 text-xs">
+                    {(t as any).currentPin || "Current PIN"}
+                  </Label>
+                  <Input
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={4}
+                    pattern="[0-9]*"
+                    value={pinOld}
+                    onChange={(e) => {
+                      setPinOld(e.target.value.replace(/\D/g, "").slice(0, 4));
+                      setPinError("");
+                      setPinSuccess("");
+                    }}
+                    className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 tracking-widest text-center mt-1"
+                    placeholder="••••"
+                    data-ocid="settings.input"
+                  />
+                </div>
+                <div>
+                  <Label className="text-gray-700 dark:text-gray-300 text-xs">
+                    {(t as any).newPin || "New PIN"}
+                  </Label>
+                  <Input
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={4}
+                    pattern="[0-9]*"
+                    value={pinNew}
+                    onChange={(e) => {
+                      setPinNew(e.target.value.replace(/\D/g, "").slice(0, 4));
+                      setPinError("");
+                      setPinSuccess("");
+                    }}
+                    className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 tracking-widest text-center mt-1"
+                    placeholder="••••"
+                    data-ocid="settings.input"
+                  />
+                </div>
+                <div>
+                  <Label className="text-gray-700 dark:text-gray-300 text-xs">
+                    {(t as any).confirmNewPin || "Confirm New PIN"}
+                  </Label>
+                  <Input
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={4}
+                    pattern="[0-9]*"
+                    value={pinConfirm}
+                    onChange={(e) => {
+                      setPinConfirm(
+                        e.target.value.replace(/\D/g, "").slice(0, 4),
+                      );
+                      setPinError("");
+                      setPinSuccess("");
+                    }}
+                    className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 tracking-widest text-center mt-1"
+                    placeholder="••••"
+                    data-ocid="settings.input"
+                  />
+                </div>
+                {pinError && (
+                  <p
+                    className="text-red-500 text-xs"
+                    data-ocid="settings.error_state"
+                  >
+                    {pinError}
+                  </p>
+                )}
+                {pinSuccess && (
+                  <p
+                    className="text-green-600 text-xs font-medium"
+                    data-ocid="settings.success_state"
+                  >
+                    {pinSuccess}
+                  </p>
+                )}
+                <Button
+                  onClick={handleChangePin}
+                  disabled={!pinOld || !pinNew || !pinConfirm}
+                  className="bg-green-700 hover:bg-green-800 text-white w-full rounded-lg disabled:opacity-50"
+                  data-ocid="settings.save_button"
+                >
+                  {(t as any).updatePin || "Update PIN"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Backup & Restore */}
         <div>
