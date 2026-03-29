@@ -713,6 +713,9 @@ export default function TransactionsPage({
         splitUpi: Number(splitUpi) || 0,
         txType,
         driverId: driverId && driverId !== "none" ? driverId : "",
+        tractorId: tractorId && tractorId !== "none" ? tractorId : "",
+        tractorName:
+          tractors.find((tr) => tr.id.toString() === tractorId)?.name || "",
       });
       localStorage.setItem("ktp_saved_transactions", JSON.stringify(savedTxns));
 

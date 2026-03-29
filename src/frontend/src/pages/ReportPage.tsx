@@ -46,7 +46,12 @@ type SubView =
   | "sevaEarnings"
   | "byTractor"
   | "monthlySummary"
-  | "driverReport";
+  | "driverReport"
+  | "driverPerformance"
+  | "driverWiseProfit"
+  | "tractorWiseReport"
+  | "tractorWiseProfit"
+  | "serviceWiseReport";
 
 type ExpenseFormType = "expense" | "salary";
 
@@ -245,7 +250,7 @@ function DriverReportView({
 }
 
 export default function ReportPage({ actor, onOpenSidebar }: Props) {
-  const { t, setPage, goBack } = useApp();
+  const { t, setPage, goBack, darkMode: dm } = useApp();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [parties, setParties] = useState<Party[]>([]);
@@ -826,6 +831,700 @@ export default function ReportPage({ actor, onOpenSidebar }: Props) {
     );
   }
 
+  // ── Helper: Date Range Filter ─────────────────────────────────────────────
+  type DateFilter = "thisMonth" | "thisYear" | "custom";
+
+  function DateRangeFilter({
+    filter,
+    setFilter,
+    fromDate,
+    setFromDate,
+    toDate,
+    setToDate,
+    darkMode,
+  }: {
+    filter: DateFilter;
+    setFilter: (f: DateFilter) => void;
+    fromDate: string;
+    setFromDate: (d: string) => void;
+    toDate: string;
+    setToDate: (d: string) => void;
+    darkMode: boolean;
+  }) {
+    const labels: Record<DateFilter, string> = {
+      thisMonth: (t as any).thisMonthFilter || "This Month",
+      thisYear: (t as any).thisYearFilter || "This Year",
+      custom: (t as any).customRangeFilter || "Custom",
+    };
+    return (
+      <div
+        className={`flex flex-wrap gap-2 p-3 border-b ${darkMode ? "border-gray-700" : "border-gray-200"}`}
+      >
+        {(["thisMonth", "thisYear", "custom"] as DateFilter[]).map((f) => (
+          <button
+            key={f}
+            type="button"
+            onClick={() => setFilter(f)}
+            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+              filter === f
+                ? "bg-green-600 text-white"
+                : darkMode
+                  ? "bg-gray-700 text-gray-300"
+                  : "bg-gray-100 text-gray-600"
+            }`}
+          >
+            {labels[f]}
+          </button>
+        ))}
+        {filter === "custom" && (
+          <div className="flex gap-2 w-full mt-2">
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              className={`flex-1 border rounded px-2 py-1 text-sm ${darkMode ? "bg-gray-800 border-gray-600 text-white" : "bg-white"}`}
+            />
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              className={`flex-1 border rounded px-2 py-1 text-sm ${darkMode ? "bg-gray-800 border-gray-600 text-white" : "bg-white"}`}
+            />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  function filterTxnsByDate(
+    txns: any[],
+    filter: DateFilter,
+    fromDate: string,
+    toDate: string,
+  ): any[] {
+    const now = new Date();
+    return txns.filter((tx) => {
+      if (!tx.date) return false;
+      const d = new Date(tx.date);
+      if (filter === "thisMonth")
+        return (
+          d.getMonth() === now.getMonth() &&
+          d.getFullYear() === now.getFullYear()
+        );
+      if (filter === "thisYear") return d.getFullYear() === now.getFullYear();
+      if (filter === "custom") {
+        if (fromDate && d < new Date(fromDate)) return false;
+        if (toDate && d > new Date(toDate)) return false;
+      }
+      return true;
+    });
+  }
+
+  function filterExpensesByDate(
+    exps: Expense[],
+    filter: DateFilter,
+    fromDate: string,
+    toDate: string,
+  ): Expense[] {
+    const now = new Date();
+    return exps.filter((e) => {
+      const d = new Date(Number(e.date));
+      if (filter === "thisMonth")
+        return (
+          d.getMonth() === now.getMonth() &&
+          d.getFullYear() === now.getFullYear()
+        );
+      if (filter === "thisYear") return d.getFullYear() === now.getFullYear();
+      if (filter === "custom") {
+        if (fromDate && d < new Date(fromDate)) return false;
+        if (toDate && d > new Date(toDate)) return false;
+      }
+      return true;
+    });
+  }
+
+  const getLocalTxns = () => {
+    try {
+      return JSON.parse(localStorage.getItem("ktp_saved_transactions") || "[]");
+    } catch {
+      return [];
+    }
+  };
+
+  // ── Sub View: Driver Performance ──────────────────────────────────────────
+  if (subView === "driverPerformance") {
+    function DriverPerformanceView() {
+      const [dpFilter, setDpFilter] = useState<DateFilter>("thisMonth");
+      const [dpFrom, setDpFrom] = useState("");
+      const [dpTo, setDpTo] = useState("");
+      const allTxns = getLocalTxns();
+      const filteredTxns = filterTxnsByDate(allTxns, dpFilter, dpFrom, dpTo);
+
+      return (
+        <div className="flex flex-col min-h-full bg-gray-50 dark:bg-gray-800">
+          <div className="sticky top-0 z-30 bg-white dark:bg-gray-900 border-b flex items-center gap-3 px-4 pt-4 pb-3">
+            <button
+              type="button"
+              onClick={() => setSubView(null)}
+              className="p-1"
+              data-ocid="report.back.button"
+            >
+              <ArrowLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+            </button>
+            <h1 className="font-bold text-base text-gray-900 dark:text-gray-100">
+              {(t as any).driverPerformanceReport || "Driver Performance"}
+            </h1>
+          </div>
+          <DateRangeFilter
+            filter={dpFilter}
+            setFilter={setDpFilter}
+            fromDate={dpFrom}
+            setFromDate={setDpFrom}
+            toDate={dpTo}
+            setToDate={setDpTo}
+            darkMode={dm}
+          />
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 pb-20">
+            {drivers.length === 0 && (
+              <p
+                className="text-center text-gray-400 py-12"
+                data-ocid="report.driverperf.empty_state"
+              >
+                {t.noData}
+              </p>
+            )}
+            {drivers.map((driver, idx) => {
+              const driverId = driver.id.toString();
+              const driverTxns = filteredTxns.filter(
+                (tx: { driverId?: string }) => tx.driverId === driverId,
+              );
+              let totalHrs = 0;
+              let totalRevenue = 0;
+              for (const tx of driverTxns) {
+                totalHrs +=
+                  ((tx as { hours?: number }).hours || 0) +
+                  ((tx as { minutes?: number }).minutes || 0) / 60;
+                totalRevenue += (tx as { amount?: number }).amount || 0;
+              }
+              const settings = getDriverSettings(driverId);
+              let presentCnt = 0;
+              let halfCnt = 0;
+              let absentCnt = 0;
+              if (settings) {
+                const now2 = new Date();
+                const attendance = computeMonthlyAttendance(
+                  driverId,
+                  filteredTxns,
+                  settings,
+                  now2.getFullYear(),
+                  now2.getMonth(),
+                );
+                for (const day of Object.values(attendance)) {
+                  const s = day as { status: string };
+                  if (s.status === "present") presentCnt++;
+                  else if (s.status === "halfDay") halfCnt++;
+                  else if (s.status === "absent") absentCnt++;
+                }
+              }
+              return (
+                <div
+                  key={driverId}
+                  className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm p-4"
+                  data-ocid={`report.driverperf.item.${idx + 1}`}
+                >
+                  <div className="font-bold text-gray-900 dark:text-gray-100 mb-3">
+                    🚗 {driver.name}
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="bg-blue-50 dark:bg-blue-900/30 rounded-xl p-2">
+                      <div className="text-lg font-bold text-blue-700 dark:text-blue-300">
+                        {driverTxns.length}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {(t as any).totalTransactions || "Transactions"}
+                      </div>
+                    </div>
+                    <div className="bg-purple-50 dark:bg-purple-900/30 rounded-xl p-2">
+                      <div className="text-lg font-bold text-purple-700 dark:text-purple-300">
+                        {totalHrs.toFixed(1)}h
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {t.totalHours}
+                      </div>
+                    </div>
+                    <div className="bg-green-50 dark:bg-green-900/30 rounded-xl p-2">
+                      <div className="text-lg font-bold text-green-700 dark:text-green-300">
+                        ₹{totalRevenue.toLocaleString("en-IN")}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {(t as any).revenueGenerated || "Revenue"}
+                      </div>
+                    </div>
+                  </div>
+                  {settings && (
+                    <div className="grid grid-cols-3 gap-2 text-center mt-2">
+                      <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-2">
+                        <div className="text-base font-bold text-green-600">
+                          {presentCnt}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {(t as any).presentCount || "Present"}
+                        </div>
+                      </div>
+                      <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-2">
+                        <div className="text-base font-bold text-yellow-600">
+                          {halfCnt}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {(t as any).halfDayCount || "Half Day"}
+                        </div>
+                      </div>
+                      <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-2">
+                        <div className="text-base font-bold text-red-600">
+                          {absentCnt}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {(t as any).absentCount || "Absent"}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+    return <DriverPerformanceView />;
+  }
+
+  // ── Sub View: Driver Wise Profit ──────────────────────────────────────────
+  if (subView === "driverWiseProfit") {
+    function DriverWiseProfitView() {
+      const [dpFilter, setDpFilter] = useState<DateFilter>("thisMonth");
+      const [dpFrom, setDpFrom] = useState("");
+      const [dpTo, setDpTo] = useState("");
+      const allTxns = getLocalTxns();
+      const filteredTxns = filterTxnsByDate(allTxns, dpFilter, dpFrom, dpTo);
+      const filteredExpenses = filterExpensesByDate(
+        expenses,
+        dpFilter,
+        dpFrom,
+        dpTo,
+      );
+
+      return (
+        <div className="flex flex-col min-h-full bg-gray-50 dark:bg-gray-800">
+          <div className="sticky top-0 z-30 bg-white dark:bg-gray-900 border-b flex items-center gap-3 px-4 pt-4 pb-3">
+            <button
+              type="button"
+              onClick={() => setSubView(null)}
+              className="p-1"
+              data-ocid="report.back.button"
+            >
+              <ArrowLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+            </button>
+            <h1 className="font-bold text-base text-gray-900 dark:text-gray-100">
+              {(t as any).driverWiseProfit || "Driver Profit"}
+            </h1>
+          </div>
+          <DateRangeFilter
+            filter={dpFilter}
+            setFilter={setDpFilter}
+            fromDate={dpFrom}
+            setFromDate={setDpFrom}
+            toDate={dpTo}
+            setToDate={setDpTo}
+            darkMode={dm}
+          />
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 pb-20">
+            {drivers.length === 0 && (
+              <p
+                className="text-center text-gray-400 py-12"
+                data-ocid="report.driverprofit.empty_state"
+              >
+                {t.noData}
+              </p>
+            )}
+            {drivers.map((driver, idx) => {
+              const driverId = driver.id.toString();
+              const revenue = filteredTxns
+                .filter((tx: any) => tx.driverId === driverId)
+                .reduce(
+                  (s: number, tx: { amount?: number }) => s + (tx.amount || 0),
+                  0,
+                );
+              const payout = filteredExpenses
+                .filter((e) => e.driverId.toString() === driverId)
+                .reduce((s, e) => s + Number(e.amount), 0);
+              const netProfit = revenue - payout;
+              return (
+                <div
+                  key={driverId}
+                  className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm p-4"
+                  data-ocid={`report.driverprofit.item.${idx + 1}`}
+                >
+                  <div className="font-bold text-gray-900 dark:text-gray-100 mb-3">
+                    🚗 {driver.name}
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="bg-green-50 dark:bg-green-900/30 rounded-xl p-2">
+                      <div className="text-lg font-bold text-green-700 dark:text-green-300">
+                        ₹{revenue.toLocaleString("en-IN")}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {(t as any).revenueGenerated || "Revenue"}
+                      </div>
+                    </div>
+                    <div className="bg-red-50 dark:bg-red-900/30 rounded-xl p-2">
+                      <div className="text-lg font-bold text-red-600 dark:text-red-300">
+                        ₹{payout.toLocaleString("en-IN")}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {(t as any).salaryPayout || "Salary"}
+                      </div>
+                    </div>
+                    <div
+                      className={`rounded-xl p-2 ${netProfit >= 0 ? "bg-blue-50 dark:bg-blue-900/30" : "bg-orange-50 dark:bg-orange-900/30"}`}
+                    >
+                      <div
+                        className={`text-lg font-bold ${netProfit >= 0 ? "text-blue-700 dark:text-blue-300" : "text-orange-600 dark:text-orange-300"}`}
+                      >
+                        {netProfit < 0 ? "−" : ""}₹
+                        {Math.abs(netProfit).toLocaleString("en-IN")}
+                      </div>
+                      <div className="text-xs text-gray-500">{t.netProfit}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+    return <DriverWiseProfitView />;
+  }
+
+  // ── Sub View: Tractor Wise Report ─────────────────────────────────────────
+  if (subView === "tractorWiseReport") {
+    function TractorWiseReportView() {
+      const [tFilter, setTFilter] = useState<DateFilter>("thisMonth");
+      const [tFrom, setTFrom] = useState("");
+      const [tTo, setTTo] = useState("");
+      const allTxns = getLocalTxns();
+      const filteredTxns = filterTxnsByDate(allTxns, tFilter, tFrom, tTo);
+
+      const tractorMap: Record<
+        string,
+        { name: string; count: number; hours: number; revenue: number }
+      > = {};
+      for (const tr of tractors) {
+        tractorMap[tr.id.toString()] = {
+          name: tr.name,
+          count: 0,
+          hours: 0,
+          revenue: 0,
+        };
+      }
+      for (const tx of filteredTxns) {
+        const tid = (tx as { tractorId?: string }).tractorId;
+        if (!tid) continue;
+        if (!tractorMap[tid])
+          tractorMap[tid] = {
+            name: (tx as { tractorName?: string }).tractorName || tid,
+            count: 0,
+            hours: 0,
+            revenue: 0,
+          };
+        tractorMap[tid].count++;
+        tractorMap[tid].hours +=
+          ((tx as { hours?: number }).hours || 0) +
+          ((tx as { minutes?: number }).minutes || 0) / 60;
+        tractorMap[tid].revenue += (tx as { amount?: number }).amount || 0;
+      }
+
+      return (
+        <div className="flex flex-col min-h-full bg-gray-50 dark:bg-gray-800">
+          <div className="sticky top-0 z-30 bg-white dark:bg-gray-900 border-b flex items-center gap-3 px-4 pt-4 pb-3">
+            <button
+              type="button"
+              onClick={() => setSubView(null)}
+              className="p-1"
+              data-ocid="report.back.button"
+            >
+              <ArrowLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+            </button>
+            <h1 className="font-bold text-base text-gray-900 dark:text-gray-100">
+              {(t as any).tractorWiseReport || "Tractor Report"}
+            </h1>
+          </div>
+          <DateRangeFilter
+            filter={tFilter}
+            setFilter={setTFilter}
+            fromDate={tFrom}
+            setFromDate={setTFrom}
+            toDate={tTo}
+            setToDate={setTTo}
+            darkMode={dm}
+          />
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 pb-20">
+            {Object.keys(tractorMap).length === 0 && (
+              <p
+                className="text-center text-gray-400 py-12"
+                data-ocid="report.tractorreport.empty_state"
+              >
+                {t.noData}
+              </p>
+            )}
+            {Object.entries(tractorMap).map(([tid, v], idx) => (
+              <div
+                key={tid}
+                className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm p-4"
+                data-ocid={`report.tractorreport.item.${idx + 1}`}
+              >
+                <div className="font-bold text-gray-900 dark:text-gray-100 mb-3">
+                  🚜 {v.name}
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-blue-50 dark:bg-blue-900/30 rounded-xl p-2">
+                    <div className="text-lg font-bold text-blue-700 dark:text-blue-300">
+                      {v.count}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {(t as any).totalTransactions || "Transactions"}
+                    </div>
+                  </div>
+                  <div className="bg-purple-50 dark:bg-purple-900/30 rounded-xl p-2">
+                    <div className="text-lg font-bold text-purple-700 dark:text-purple-300">
+                      {v.hours.toFixed(1)}h
+                    </div>
+                    <div className="text-xs text-gray-500">{t.totalHours}</div>
+                  </div>
+                  <div className="bg-green-50 dark:bg-green-900/30 rounded-xl p-2">
+                    <div className="text-lg font-bold text-green-700 dark:text-green-300">
+                      ₹{v.revenue.toLocaleString("en-IN")}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {(t as any).revenueGenerated || "Revenue"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    return <TractorWiseReportView />;
+  }
+
+  // ── Sub View: Tractor Wise Profit ─────────────────────────────────────────
+  if (subView === "tractorWiseProfit") {
+    function TractorWiseProfitView() {
+      const [tFilter, setTFilter] = useState<DateFilter>("thisMonth");
+      const [tFrom, setTFrom] = useState("");
+      const [tTo, setTTo] = useState("");
+      const allTxns = getLocalTxns();
+      const filteredTxns = filterTxnsByDate(allTxns, tFilter, tFrom, tTo);
+      const filteredExpenses = filterExpensesByDate(
+        expenses,
+        tFilter,
+        tFrom,
+        tTo,
+      );
+
+      return (
+        <div className="flex flex-col min-h-full bg-gray-50 dark:bg-gray-800">
+          <div className="sticky top-0 z-30 bg-white dark:bg-gray-900 border-b flex items-center gap-3 px-4 pt-4 pb-3">
+            <button
+              type="button"
+              onClick={() => setSubView(null)}
+              className="p-1"
+              data-ocid="report.back.button"
+            >
+              <ArrowLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+            </button>
+            <h1 className="font-bold text-base text-gray-900 dark:text-gray-100">
+              {(t as any).tractorWiseProfit || "Tractor Profit"}
+            </h1>
+          </div>
+          <DateRangeFilter
+            filter={tFilter}
+            setFilter={setTFilter}
+            fromDate={tFrom}
+            setFromDate={setTFrom}
+            toDate={tTo}
+            setToDate={setTTo}
+            darkMode={dm}
+          />
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 pb-20">
+            {tractors.length === 0 && (
+              <p
+                className="text-center text-gray-400 py-12"
+                data-ocid="report.tractorprofit.empty_state"
+              >
+                {t.noData}
+              </p>
+            )}
+            {tractors.map((tr, idx) => {
+              const tid = tr.id.toString();
+              const revenue = filteredTxns
+                .filter((tx: any) => tx.tractorId === tid)
+                .reduce(
+                  (s: number, tx: { amount?: number }) => s + (tx.amount || 0),
+                  0,
+                );
+              const maintenance = filteredExpenses
+                .filter((e) => e.tractorId.toString() === tid)
+                .reduce((s, e) => s + Number(e.amount), 0);
+              const netProfit = revenue - maintenance;
+              return (
+                <div
+                  key={tid}
+                  className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm p-4"
+                  data-ocid={`report.tractorprofit.item.${idx + 1}`}
+                >
+                  <div className="font-bold text-gray-900 dark:text-gray-100 mb-3">
+                    🚜 {tr.name}
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="bg-green-50 dark:bg-green-900/30 rounded-xl p-2">
+                      <div className="text-lg font-bold text-green-700 dark:text-green-300">
+                        ₹{revenue.toLocaleString("en-IN")}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {(t as any).revenueGenerated || "Revenue"}
+                      </div>
+                    </div>
+                    <div className="bg-red-50 dark:bg-red-900/30 rounded-xl p-2">
+                      <div className="text-lg font-bold text-red-600 dark:text-red-300">
+                        ₹{maintenance.toLocaleString("en-IN")}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {(t as any).maintenanceCost || "Maintenance"}
+                      </div>
+                    </div>
+                    <div
+                      className={`rounded-xl p-2 ${netProfit >= 0 ? "bg-blue-50 dark:bg-blue-900/30" : "bg-orange-50 dark:bg-orange-900/30"}`}
+                    >
+                      <div
+                        className={`text-lg font-bold ${netProfit >= 0 ? "text-blue-700 dark:text-blue-300" : "text-orange-600 dark:text-orange-300"}`}
+                      >
+                        {netProfit < 0 ? "−" : ""}₹
+                        {Math.abs(netProfit).toLocaleString("en-IN")}
+                      </div>
+                      <div className="text-xs text-gray-500">{t.netProfit}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+    return <TractorWiseProfitView />;
+  }
+
+  // ── Sub View: Service Wise Report ─────────────────────────────────────────
+  if (subView === "serviceWiseReport") {
+    function ServiceWiseReportView() {
+      const [sFilter, setSFilter] = useState<DateFilter>("thisMonth");
+      const [sFrom, setSFrom] = useState("");
+      const [sTo, setSTo] = useState("");
+      const allTxns = getLocalTxns();
+      const filteredTxns = filterTxnsByDate(allTxns, sFilter, sFrom, sTo);
+
+      const serviceMap: Record<
+        string,
+        { count: number; hours: number; amount: number }
+      > = {};
+      for (const tx of filteredTxns) {
+        const svc = (tx as { workType?: string }).workType || t.other;
+        if (!serviceMap[svc])
+          serviceMap[svc] = { count: 0, hours: 0, amount: 0 };
+        serviceMap[svc].count++;
+        serviceMap[svc].hours +=
+          ((tx as { hours?: number }).hours || 0) +
+          ((tx as { minutes?: number }).minutes || 0) / 60;
+        serviceMap[svc].amount += (tx as { amount?: number }).amount || 0;
+      }
+
+      return (
+        <div className="flex flex-col min-h-full bg-gray-50 dark:bg-gray-800">
+          <div className="sticky top-0 z-30 bg-white dark:bg-gray-900 border-b flex items-center gap-3 px-4 pt-4 pb-3">
+            <button
+              type="button"
+              onClick={() => setSubView(null)}
+              className="p-1"
+              data-ocid="report.back.button"
+            >
+              <ArrowLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+            </button>
+            <h1 className="font-bold text-base text-gray-900 dark:text-gray-100">
+              {(t as any).serviceWiseReport || "Service Report"}
+            </h1>
+          </div>
+          <DateRangeFilter
+            filter={sFilter}
+            setFilter={setSFilter}
+            fromDate={sFrom}
+            setFromDate={setSFrom}
+            toDate={sTo}
+            setToDate={setSTo}
+            darkMode={dm}
+          />
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 pb-20">
+            {Object.keys(serviceMap).length === 0 && (
+              <p
+                className="text-center text-gray-400 py-12"
+                data-ocid="report.servicereport.empty_state"
+              >
+                {t.noData}
+              </p>
+            )}
+            {Object.entries(serviceMap).map(([svc, v], idx) => (
+              <div
+                key={svc}
+                className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm p-4"
+                data-ocid={`report.servicereport.item.${idx + 1}`}
+              >
+                <div className="font-bold text-gray-900 dark:text-gray-100 mb-3">
+                  ⚙️ {svc}
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-blue-50 dark:bg-blue-900/30 rounded-xl p-2">
+                    <div className="text-lg font-bold text-blue-700 dark:text-blue-300">
+                      {v.count}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {(t as any).totalTransactions || "Transactions"}
+                    </div>
+                  </div>
+                  <div className="bg-purple-50 dark:bg-purple-900/30 rounded-xl p-2">
+                    <div className="text-lg font-bold text-purple-700 dark:text-purple-300">
+                      {v.hours.toFixed(1)}h
+                    </div>
+                    <div className="text-xs text-gray-500">{t.totalHours}</div>
+                  </div>
+                  <div className="bg-green-50 dark:bg-green-900/30 rounded-xl p-2">
+                    <div className="text-lg font-bold text-green-700 dark:text-green-300">
+                      ₹{v.amount.toLocaleString("en-IN")}
+                    </div>
+                    <div className="text-xs text-gray-500">{t.totalAmount}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    return <ServiceWiseReportView />;
+  }
+
   const handleDownloadReportPdf = () => {
     const totalIncome = payments.reduce((s, p) => s + Number(p.amount || 0), 0);
     const totalExpenses = expenses.reduce(
@@ -963,6 +1662,41 @@ export default function ReportPage({ actor, onOpenSidebar }: Props) {
           label: t.driverReport,
           action: () => setSubView("driverReport"),
           ocid: "report.driverreport.button",
+        },
+        {
+          label: (t as any).driverPerformanceReport || "Driver Performance",
+          action: () => setSubView("driverPerformance"),
+          ocid: "report.driverperformance.button",
+        },
+        {
+          label: (t as any).driverWiseProfit || "Driver Profit",
+          action: () => setSubView("driverWiseProfit"),
+          ocid: "report.driverwiseprofit.button",
+        },
+      ],
+    },
+    {
+      title: (t as any).tractorWiseReport || "Tractor Reports",
+      items: [
+        {
+          label: (t as any).tractorWiseReport || "Tractor Report",
+          action: () => setSubView("tractorWiseReport"),
+          ocid: "report.tractorwisereport.button",
+        },
+        {
+          label: (t as any).tractorWiseProfit || "Tractor Profit",
+          action: () => setSubView("tractorWiseProfit"),
+          ocid: "report.tractorwiseprofit.button",
+        },
+      ],
+    },
+    {
+      title: (t as any).serviceWiseReport || "Service Report",
+      items: [
+        {
+          label: (t as any).serviceWiseReport || "Service Report",
+          action: () => setSubView("serviceWiseReport"),
+          ocid: "report.servicewisereport.button",
         },
       ],
     },

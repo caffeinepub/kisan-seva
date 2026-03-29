@@ -154,7 +154,11 @@ export default function CashFlowPage({ actor: _actor, onOpenSidebar }: Props) {
               }`}
               data-ocid="cash_flow.tab"
             >
-              {f === "all" ? "All" : f === "in" ? "In (+)" : "Out (−)"}
+              {f === "all"
+                ? "All"
+                : f === "in"
+                  ? `${(t as any).cashFlowIn} (+)`
+                  : `${(t as any).cashFlowOut} (−)`}
             </button>
           ))}
           <div className="w-px bg-gray-300" />

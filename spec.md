@@ -1,31 +1,48 @@
 # Kisan Seva
 
 ## Current State
-- BookingsPage: Edit and Delete buttons show for ALL bookings including completed ones — no guard on status
-- TransactionsPage: No delete or edit option exists for saved transactions
-- AllTransactionsPage: Fetches parties but discards them (_parts unused); party name not shown in transaction list
-- Dashboard All Transactions tab: Party name not shown
-- Booking-Transaction link: Transaction stores bookingRef string but no cascade delete logic exists
+- CashFlowPage.tsx uses hardcoded "In:" and "Out:" strings in summary cards and filter buttons (not translated)
+- ReportPage.tsx has: Party Statement, Seva Earnings, By Tractor (expenses only), Monthly Summary, Driver Report
+- Driver Report shows transactions, hours, estimated pay per driver per month
+- Transactions saved to ktp_saved_transactions with: id, date, time, partyId, partyName, workType, hours, minutes, rate, amount, discount, receivedAmount, paymentMethod, driverId (NO tractorId/tractorName saved)
+- Expenses tracked per tractor (maintenance), per driver (driverPayment)
+- i18n.ts has 3 languages: Gujarati, Hindi, English
 
 ## Requested Changes (Diff)
 
 ### Add
-- Transaction edit and delete options in TransactionsPage
-- Cascade delete: when a transaction is deleted, if it has a connected bookingId, delete that booking too (from backend + localStorage)
-- Party name display in AllTransactionsPage list
-- Party name display in Dashboard "All Transactions" tab
+- Translation keys: cashFlowIn (આવક/आवक/In), cashFlowOut (જાવક/जावक/Out) in i18n.ts for all 3 languages
+- Translation keys for new report views in all 3 languages:
+  - driverPerformanceReport, driverWiseProfit, tractorWiseReport, tractorWiseProfit, serviceWiseReport
+  - dateFilterLabel, thisMonthFilter, thisYearFilter, customRangeFilter
+  - presentLabel, absentLabel, halfDayLabel, attendanceCount, revenueGenerated, netProfit, salaryPayout, maintenanceCost
+- New sub views in ReportPage:
+  1. **Driver Performance Report** - per driver: transaction count, total hours, total earnings + attendance (Present/Absent/Half Day count)
+  2. **Driver-wise Profit** - per driver: revenue generated (from transactions) - salary payout (from expenses driverPayment) = net profit
+  3. **Tractor-wise Report** - per tractor: transaction count, total hours, total revenue
+  4. **Tractor-wise Profit** - per tractor: revenue - maintenance expenses = net profit  
+  5. **Service-wise Report** - per service type (workType): total transactions, total hours, total amount
+- Date range filter (This Month / This Year / Custom) on all 5 new report views
+- Save tractorId + tractorName into ktp_saved_transactions when saving a transaction
 
 ### Modify
-- BookingsPage: Wrap Edit and Delete buttons with `b.status !== BookingStatus.completed` check — completed bookings become read-only
-- AllTransactionsPage: Use the fetched parties list to look up and display party name per transaction; also fall back to ktp_saved_transactions partyName field
-- Dashboard: Look up party name for each payment in transactions tab using ktp_saved_transactions (which stores partyName)
-- TransactionsPage: Add delete handler that removes from backend (actor.deletePayment if available, else just localStorage), removes from ktp_saved_transactions, and cascade-deletes linked booking
+- CashFlowPage.tsx: Replace hardcoded "In:" with t.cashFlowIn and "Out:" with t.cashFlowOut; also update filter buttons "In (+)" → `${t.cashFlowIn} (+)` and "Out (-)" → `${t.cashFlowOut} (-)`
+- ReportPage.tsx: Add 5 new menu items under appropriate sections + implement their sub views
+- TransactionsPage.tsx: Add tractorId and tractorName to the object saved in ktp_saved_transactions
 
 ### Remove
 - Nothing removed
 
 ## Implementation Plan
-1. BookingsPage.tsx: Add `b.status !== BookingStatus.completed` guard around Edit and Delete buttons
-2. TransactionsPage.tsx / AllTransactionsPage.tsx: Add delete (and edit) buttons on saved transaction cards; delete removes from ktp_saved_transactions and cascade-deletes connected booking (by bookingRef/id from localStorage)
-3. AllTransactionsPage.tsx: Use parties list to show party name in each transaction card
-4. Dashboard.tsx: Show party name in All Transactions tab using ktp_saved_transactions partyName
+1. Add cashFlowIn/cashFlowOut + new report translation keys to i18n.ts (all 3 languages)
+2. Update CashFlowPage.tsx to use t.cashFlowIn and t.cashFlowOut
+3. Update TransactionsPage.tsx to save tractorId + tractorName in ktp_saved_transactions  
+4. Add 5 new sub view components in ReportPage.tsx:
+   - Each reads from ktp_saved_transactions + expenses data
+   - Each has date range filter (This Month / This Year / Custom range with from/to date pickers)
+   - Tractor-wise Report/Profit reads tractorId from transactions (after fix)
+   - Driver Performance combines attendance (from driverAttendance utils) + transaction data
+   - Driver-wise Profit: sum transaction amounts per driver (as revenue) - sum driverPayment expenses per driver = net profit
+   - Tractor-wise Profit: sum transaction amounts per tractor - sum maintenance expenses per tractor = net profit
+   - Service-wise: group transactions by workType, sum count/hours/amount
+5. Add 5 new menu items to the sections array in ReportPage main view
