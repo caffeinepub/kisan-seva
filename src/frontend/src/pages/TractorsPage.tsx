@@ -26,7 +26,7 @@ export default function TractorsPage({ actor, onOpenSidebar }: Props) {
   const [tractors, setTractors] = useState<Tractor[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: "", model: "", ratePerHour: "500" });
+  const [form, setForm] = useState({ name: "", model: "" });
   const [editId, setEditId] = useState<bigint | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -51,23 +51,14 @@ export default function TractorsPage({ actor, onOpenSidebar }: Props) {
     setSaving(true);
     try {
       if (editId !== null) {
-        await actor.updateTractor(
-          editId,
-          form.name,
-          form.model,
-          BigInt(form.ratePerHour),
-        );
+        await actor.updateTractor(editId, form.name, form.model, 0n);
         toast.success(t.updatedMsg);
       } else {
-        await actor.createTractor(
-          form.name,
-          form.model,
-          BigInt(form.ratePerHour),
-        );
+        await actor.createTractor(form.name, form.model, 0n);
         toast.success(t.tractorAddedMsg);
       }
       setShowForm(false);
-      setForm({ name: "", model: "", ratePerHour: "500" });
+      setForm({ name: "", model: "" });
       setEditId(null);
       await load();
     } catch {
@@ -133,16 +124,6 @@ export default function TractorsPage({ actor, onOpenSidebar }: Props) {
               }
             />
           </div>
-          <div>
-            <Label>{t.ratePerHour}</Label>
-            <Input
-              type="number"
-              value={form.ratePerHour}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, ratePerHour: e.target.value }))
-              }
-            />
-          </div>
           <Button
             onClick={handleSave}
             disabled={saving}
@@ -204,8 +185,8 @@ export default function TractorsPage({ actor, onOpenSidebar }: Props) {
                 <div className="font-semibold text-gray-900 dark:text-gray-100">
                   {tr.name}
                 </div>
-                <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
-                  {tr.model} · ₹{tr.ratePerHour.toString()}/hr
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  {tr.model}
                 </div>
               </div>
               <button
@@ -246,12 +227,11 @@ export default function TractorsPage({ actor, onOpenSidebar }: Props) {
                   setForm({
                     name: tr.name,
                     model: tr.model,
-                    ratePerHour: tr.ratePerHour.toString(),
                   });
                   setEditId(tr.id);
                   setShowForm(true);
                 }}
-                className="flex-1 py-1.5 rounded-lg border text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500"
+                className="flex-1 py-1.5 rounded-lg border text-sm text-gray-600 dark:text-gray-400"
               >
                 {t.edit}
               </button>

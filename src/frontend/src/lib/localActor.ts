@@ -113,7 +113,7 @@ function toTractor(t: LSTractor) {
     id: BigInt(t.id),
     name: t.name,
     model: t.model,
-    ratePerHour: BigInt(Math.round(t.ratePerHour)),
+    ratePerHour: BigInt(Math.round(t.ratePerHour || 0)),
     status: t.status === "busy" ? TractorStatus.busy : TractorStatus.free,
     driverId:
       t.driverId != null

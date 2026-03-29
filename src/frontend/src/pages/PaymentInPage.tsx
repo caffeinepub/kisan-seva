@@ -47,12 +47,41 @@ export default function PaymentInPage({ actor, onOpenSidebar }: Props) {
 
   useEffect(() => {
     actor.getAllParties().then((fetched) => {
-      const localRaw = localStorage.getItem("ktp_saved_parties");
-      const local: Party[] = localRaw ? JSON.parse(localRaw) : [];
+      // Also merge parties from ktp_ls_parties directly (localActor storage)
+      const localRaw = localStorage.getItem("ktp_ls_parties");
+      const local: Party[] = localRaw
+        ? JSON.parse(localRaw).map((p: any) => ({
+            id: BigInt(p.id),
+            name: p.name,
+            phone: p.phone,
+            address: p.address,
+            creditBalance: BigInt(Math.round(p.creditBalance || 0)),
+          }))
+        : [];
       const merged = [...fetched];
       for (const lp of local) {
         if (!merged.find((p) => p.id.toString() === lp.id.toString())) {
           merged.push(lp);
+        }
+      }
+      // Also merge from ktp_saved_parties if present
+      const savedRaw = localStorage.getItem("ktp_saved_parties");
+      if (savedRaw) {
+        try {
+          const saved: Party[] = JSON.parse(savedRaw).map((p: any) => ({
+            id: BigInt(p.id),
+            name: p.name,
+            phone: p.phone || "",
+            address: p.address || "",
+            creditBalance: BigInt(Math.round(Number(p.creditBalance) || 0)),
+          }));
+          for (const sp of saved) {
+            if (!merged.find((p) => p.id.toString() === sp.id.toString())) {
+              merged.push(sp);
+            }
+          }
+        } catch {
+          // ignore parse errors
         }
       }
       setParties(merged.filter((p) => p.id.toString() !== CASH_PARTY_ID));
@@ -65,7 +94,7 @@ export default function PaymentInPage({ actor, onOpenSidebar }: Props) {
           p.name.toLowerCase().includes(search.toLowerCase()) ||
           p.phone?.includes(search),
       )
-    : parties;
+    : parties.slice(0, 20);
 
   const handleSelectParty = (p: Party) => {
     setSelectedParty(p);
@@ -256,38 +285,39 @@ export default function PaymentInPage({ actor, onOpenSidebar }: Props) {
               className={inputCls}
               data-ocid="payment_in.search_input"
             />
-            {showDropdown && filtered.length > 0 && (
-              <div
-                className={`absolute top-full left-0 right-0 z-20 border rounded-lg shadow-lg max-h-48 overflow-y-auto mt-1 ${
-                  darkMode
-                    ? "bg-gray-800 border-gray-600"
-                    : "bg-white border-gray-200"
-                }`}
-              >
-                {filtered.map((p) => {
-                  const udharMap = getUdharMap();
-                  const due =
-                    (udharMap[p.id.toString()] || 0) +
-                    Number(p.creditBalance || 0);
-                  return (
-                    <div
-                      key={p.id.toString()}
-                      className={`px-3 py-2 cursor-pointer flex justify-between items-center ${
-                        darkMode ? "hover:bg-gray-700" : "hover:bg-green-50"
-                      }`}
-                      onMouseDown={() => handleSelectParty(p)}
-                    >
-                      <span className="font-medium">{p.name}</span>
-                      {due > 0 && (
-                        <span className="text-xs text-red-500 font-semibold">
-                          ₹{due} {(t as any).due || "due"}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            {showDropdown &&
+              (search ? filtered.length > 0 : parties.length > 0) && (
+                <div
+                  className={`absolute top-full left-0 right-0 z-20 border rounded-lg shadow-lg max-h-48 overflow-y-auto mt-1 ${
+                    darkMode
+                      ? "bg-gray-800 border-gray-600"
+                      : "bg-white border-gray-200"
+                  }`}
+                >
+                  {(search ? filtered : parties.slice(0, 20)).map((p) => {
+                    const udharMap = getUdharMap();
+                    const due =
+                      (udharMap[p.id.toString()] || 0) +
+                      Number(p.creditBalance || 0);
+                    return (
+                      <div
+                        key={p.id.toString()}
+                        className={`px-3 py-2 cursor-pointer flex justify-between items-center ${
+                          darkMode ? "hover:bg-gray-700" : "hover:bg-green-50"
+                        }`}
+                        onMouseDown={() => handleSelectParty(p)}
+                      >
+                        <span className="font-medium">{p.name}</span>
+                        {due > 0 && (
+                          <span className="text-xs text-red-500 font-semibold">
+                            ₹{due} {(t as any).due || "due"}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
           </div>
           {selectedParty && (
             <p className="text-xs text-green-600 dark:text-green-400">
