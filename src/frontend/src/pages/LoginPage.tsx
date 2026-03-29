@@ -260,7 +260,7 @@ export default function LoginPage({
         {/* Logo */}
         <div className="flex flex-col items-center gap-2">
           <div className="flex items-center justify-center w-16 h-16 bg-green-700 rounded-full shadow-lg">
-            <Tractor className="w-8 h-8 text-white" />
+            <Tractor className="w-9 h-9 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             Kisan Seva
