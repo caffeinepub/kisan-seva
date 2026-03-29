@@ -55,6 +55,7 @@ function PartyDetailView({
   onEdit: (party: Party) => void;
   onDelete: (partyId: bigint) => void;
 }) {
+  const { t } = useApp();
   const udharMap: Record<string, number> = JSON.parse(
     localStorage.getItem("ktp_party_udhar") || "{}",
   );
@@ -180,14 +181,14 @@ function PartyDetailView({
         {/* Transactions Header */}
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-gray-800 dark:text-gray-200">
-            Transactions ({partyTxns.length})
+            {t.transactionsLabel} ({partyTxns.length})
           </h3>
           <button
             type="button"
             onClick={() => setShowFilters(!showFilters)}
             className="text-xs text-green-700 border border-green-200 px-3 py-1.5 rounded-lg"
           >
-            🔍 Filter
+            🔍 {t.filterText}
           </button>
         </div>
 
@@ -262,7 +263,7 @@ function PartyDetailView({
         {/* Transaction List */}
         {filtered.length === 0 ? (
           <div className="text-center py-10 text-gray-400 dark:text-gray-500">
-            <p>No transactions found</p>
+            <p>{t.noPartyTransactions}</p>
           </div>
         ) : (
           <div className="space-y-2">

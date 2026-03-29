@@ -314,7 +314,7 @@ export default function App() {
   };
 
   const bottomNavItems = [
-    { key: "paymentIn" as Page, label: "Payment In", icon: ArrowDownCircle },
+    { key: "paymentIn" as Page, label: t.paymentIn, icon: ArrowDownCircle },
     { key: "transactions" as Page, label: t.transaction, icon: FileText },
     { key: "bookings" as Page, label: t.bookings, icon: BookOpen },
   ];

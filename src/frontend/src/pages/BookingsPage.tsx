@@ -288,7 +288,7 @@ export default function BookingsPage({
               />
             </div>
             <div className="flex-1">
-              <Label>Time</Label>
+              <Label>{t.timeLabel2}</Label>
               <Input
                 type="time"
                 value={form.time}

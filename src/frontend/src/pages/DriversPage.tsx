@@ -118,7 +118,7 @@ function DriverAttendanceView({
       {!settings && (
         <div className="p-6 text-center text-gray-400 dark:text-gray-500">
           <Calendar className="w-10 h-10 mx-auto mb-2 opacity-40" />
-          <p>Attendance settings not configured.</p>
+          <p>{t.attNotConfigured}</p>
           <p className="text-xs mt-1">
             Edit driver to set attendance type and rate.
           </p>

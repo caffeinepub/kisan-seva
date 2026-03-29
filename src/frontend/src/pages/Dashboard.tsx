@@ -130,9 +130,9 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
   ];
 
   const tabs: { key: ActiveTab; label: string }[] = [
-    { key: "parties", label: "Party Due" },
-    { key: "transactions", label: "All Transactions" },
-    { key: "services", label: "Service" },
+    { key: "parties", label: t.partyDue },
+    { key: "transactions", label: t.allTransactions },
+    { key: "services", label: t.serviceList },
   ];
 
   const renderTabContent = () => {
@@ -250,7 +250,7 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
         <div className="px-4 py-3">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1">
-              <span>🔧</span> Services
+              <span>🔧</span> {t.serviceList}
             </h2>
             <button
               type="button"
@@ -263,7 +263,7 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
           </div>
           {services.length === 0 ? (
             <p className="text-gray-400 dark:text-gray-500 text-sm text-center py-8">
-              No services
+              {t.noServices}
             </p>
           ) : (
             <div className="flex flex-col gap-2">
