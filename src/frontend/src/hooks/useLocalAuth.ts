@@ -66,18 +66,54 @@ export function useLocalAuth() {
     return true;
   }
 
-  function loginWithMobile(mobile: string, password: string): boolean {
+  function loginWithMobile(
+    mobile: string,
+    password: string,
+  ): "ok" | "mobile_not_found" | "wrong_password" {
     const accounts = getAccounts();
-    const account = accounts.find(
-      (a) => a.mobile === mobile && a.password === password,
-    );
-    if (!account) return false;
+    const byMobile = accounts.find((a) => a.mobile === mobile);
+    if (!byMobile) return "mobile_not_found";
+    if (byMobile.password !== password) return "wrong_password";
     const newSession = {
-      user: { name: account.name, mobile: account.mobile },
+      user: { name: byMobile.name, mobile: byMobile.mobile },
       isGuest: false,
     };
     localStorage.setItem(SESSION_KEY, JSON.stringify(newSession));
     setSession(newSession);
+    return "ok";
+  }
+
+  function verifyPin(mobile: string, pin: string): boolean {
+    const accounts = getAccounts();
+    const account = accounts.find((a) => a.mobile === mobile);
+    return account?.pin === pin;
+  }
+
+  function changePin(mobile: string, oldPin: string, newPin: string): boolean {
+    const accounts = getAccounts();
+    const idx = accounts.findIndex((a) => a.mobile === mobile);
+    if (idx === -1) return false;
+    if (accounts[idx].pin !== oldPin) return false;
+    accounts[idx] = { ...accounts[idx], pin: newPin };
+    saveAccounts(accounts);
+    return true;
+  }
+
+  function resetPinViaSecurity(
+    mobile: string,
+    securityAnswer: string,
+    newPin: string,
+  ): boolean {
+    const accounts = getAccounts();
+    const idx = accounts.findIndex((a) => a.mobile === mobile);
+    if (idx === -1) return false;
+    if (
+      accounts[idx].securityAnswer.trim().toLowerCase() !==
+      securityAnswer.trim().toLowerCase()
+    )
+      return false;
+    accounts[idx] = { ...accounts[idx], pin: newPin };
+    saveAccounts(accounts);
     return true;
   }
 
@@ -140,5 +176,8 @@ export function useLocalAuth() {
     changePassword,
     getSecurityQuestion,
     deleteAccount,
+    verifyPin,
+    changePin,
+    resetPinViaSecurity,
   };
 }

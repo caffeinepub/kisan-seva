@@ -23,6 +23,7 @@ import LoginPage from "./pages/LoginPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import PartiesPage from "./pages/PartiesPage";
 import PaymentInPage from "./pages/PaymentInPage";
+import PinLockScreen from "./pages/PinLockScreen";
 import ReportPage from "./pages/ReportPage";
 import ServicesPage from "./pages/ServicesPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -84,6 +85,8 @@ export default function App() {
     logout,
     changePassword,
     getSecurityQuestion,
+    verifyPin,
+    resetPinViaSecurity,
   } = useLocalAuth();
   const localActor = createLocalActor();
   const [lang, setLangState] = useState<Lang>(() => {
@@ -101,6 +104,10 @@ export default function App() {
     setLangState(l);
     localStorage.setItem("ktp_lang", l);
   };
+
+  const [pinUnlocked, setPinUnlocked] = useState(() => {
+    return localStorage.getItem("ktp_pin_lock_enabled") === "false";
+  });
 
   const setDarkMode = (v: boolean) => {
     setDarkModeState(v);
@@ -145,7 +152,10 @@ export default function App() {
     navigateTo,
     goBack,
     isGuest: false,
-    logout,
+    logout: () => {
+      logout();
+      setPinUnlocked(false);
+    },
     actor: null,
     currentUser: null,
     darkMode,
@@ -160,6 +170,23 @@ export default function App() {
           onLogin={loginWithMobile}
           onGuestLogin={guestLogin}
           onChangePassword={changePassword}
+          getSecurityQuestion={getSecurityQuestion}
+        />
+        <Toaster />
+      </AppContext.Provider>
+    );
+  }
+
+  if (isLoggedIn && !pinUnlocked) {
+    return (
+      <AppContext.Provider value={contextValue}>
+        <PinLockScreen
+          mobile={currentUser?.mobile ?? ""}
+          userName={currentUser?.name ?? ""}
+          onUnlock={() => setPinUnlocked(true)}
+          t={t}
+          verifyPin={verifyPin}
+          resetPinViaSecurity={resetPinViaSecurity}
           getSecurityQuestion={getSecurityQuestion}
         />
         <Toaster />
@@ -319,6 +346,11 @@ export default function App() {
     { key: "bookings" as Page, label: t.bookings, icon: BookOpen },
   ];
 
+  const handleLogout = () => {
+    logout();
+    setPinUnlocked(false);
+  };
+
   const fullCtx = {
     lang,
     setLang,
@@ -328,7 +360,7 @@ export default function App() {
     navigateTo,
     goBack,
     isGuest,
-    logout,
+    logout: handleLogout,
     actor,
     currentUser,
     darkMode,

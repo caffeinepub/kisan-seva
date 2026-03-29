@@ -136,12 +136,12 @@ export default function LoginPage({
       setLoginError(t.mobileInvalid);
       return;
     }
-    if (loginPassword.length < 8) {
-      setLoginError(t.passwordTooShort);
-      return;
+    const result = onLogin(loginMobile, loginPassword);
+    if (result === "mobile_not_found") {
+      setLoginError((t as any).loginMobileNotFound ?? t.mobileNotRegistered);
+    } else if (result === "wrong_password") {
+      setLoginError((t as any).loginWrongPassword ?? t.loginWrongCredentials);
     }
-    const ok = onLogin(loginMobile, loginPassword);
-    if (!ok) setLoginError(t.loginWrongCredentials);
   }
 
   function handleCreateAccount() {

@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   Cloud,
   Download,
+  Lock,
   LogOut,
   Moon,
   Sun,
@@ -52,6 +53,9 @@ export default function SettingsPage({ actor }: Props) {
   // Delete account dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletePin, setDeletePin] = useState("");
+  const [pinLockEnabled, setPinLockEnabledState] = useState(() => {
+    return localStorage.getItem("ktp_pin_lock_enabled") !== "false";
+  });
   const [deletePinError, setDeletePinError] = useState("");
 
   // File input ref for restore
@@ -200,6 +204,34 @@ export default function SettingsPage({ actor }: Props) {
             <Switch
               checked={darkMode}
               onCheckedChange={setDarkMode}
+              data-ocid="settings.switch"
+            />
+          </div>
+        </div>
+
+        {/* App Lock (PIN) */}
+        <div>
+          <h2 className="font-semibold text-gray-800 dark:text-gray-200 mb-3">
+            {(t as any).appLockPin || "App Lock (PIN)"}
+          </h2>
+          <div className="flex items-center justify-between p-3 bg-gray-100 dark:bg-gray-800 rounded-xl">
+            <div className="flex items-center gap-2">
+              <Lock className="w-5 h-5 text-green-600" />
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 block">
+                  {(t as any).appLockPin || "App Lock (PIN)"}
+                </span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {(t as any).appLockDesc || "Require PIN every time app opens"}
+                </span>
+              </div>
+            </div>
+            <Switch
+              checked={pinLockEnabled}
+              onCheckedChange={(val) => {
+                setPinLockEnabledState(val);
+                localStorage.setItem("ktp_pin_lock_enabled", String(val));
+              }}
               data-ocid="settings.switch"
             />
           </div>
