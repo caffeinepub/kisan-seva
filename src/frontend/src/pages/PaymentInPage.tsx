@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Menu } from "lucide-react";
+import { ArrowLeft, Menu, Minus, TrendingDown, TrendingUp } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useApp } from "../App";
@@ -104,6 +104,14 @@ export default function PaymentInPage({ actor, onOpenSidebar }: Props) {
 
   // Auto-sum split
   const splitTotal = (Number(splitCash) || 0) + (Number(splitUpi) || 0);
+
+  // Compute due for selected party
+  const getPartyDue = (p: Party): number => {
+    const udharMap = getUdharMap();
+    return (udharMap[p.id.toString()] || 0) + Number(p.creditBalance || 0);
+  };
+
+  const selectedDue = selectedParty ? getPartyDue(selectedParty) : null;
 
   const handleSave = () => {
     if (!selectedParty) {
@@ -295,10 +303,7 @@ export default function PaymentInPage({ actor, onOpenSidebar }: Props) {
                   }`}
                 >
                   {(search ? filtered : parties.slice(0, 20)).map((p) => {
-                    const udharMap = getUdharMap();
-                    const due =
-                      (udharMap[p.id.toString()] || 0) +
-                      Number(p.creditBalance || 0);
+                    const due = getPartyDue(p);
                     return (
                       <div
                         key={p.id.toString()}
@@ -308,10 +313,16 @@ export default function PaymentInPage({ actor, onOpenSidebar }: Props) {
                         onMouseDown={() => handleSelectParty(p)}
                       >
                         <span className="font-medium">{p.name}</span>
-                        {due > 0 && (
+                        {due > 0 ? (
                           <span className="text-xs text-red-500 font-semibold">
-                            ₹{due} {(t as any).due || "due"}
+                            Due ₹{due}
                           </span>
+                        ) : due < 0 ? (
+                          <span className="text-xs text-green-500 font-semibold">
+                            Adv ₹{Math.abs(due)}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400">₹0</span>
                         )}
                       </div>
                     );
@@ -326,6 +337,113 @@ export default function PaymentInPage({ actor, onOpenSidebar }: Props) {
             </p>
           )}
         </div>
+
+        {/* Balance info card - shown when party is selected */}
+        {selectedParty && selectedDue !== null && (
+          <div
+            className={`rounded-xl border-2 p-4 ${
+              selectedDue > 0
+                ? darkMode
+                  ? "bg-red-900/20 border-red-700"
+                  : "bg-red-50 border-red-200"
+                : selectedDue < 0
+                  ? darkMode
+                    ? "bg-green-900/20 border-green-700"
+                    : "bg-emerald-50 border-emerald-200"
+                  : darkMode
+                    ? "bg-gray-800 border-gray-600"
+                    : "bg-gray-50 border-gray-200"
+            }`}
+            data-ocid="payment_in.panel"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {selectedDue > 0 ? (
+                  <div
+                    className={`p-2 rounded-lg ${
+                      darkMode ? "bg-red-800/50" : "bg-red-100"
+                    }`}
+                  >
+                    <TrendingDown size={18} className="text-red-500" />
+                  </div>
+                ) : selectedDue < 0 ? (
+                  <div
+                    className={`p-2 rounded-lg ${
+                      darkMode ? "bg-green-800/50" : "bg-emerald-100"
+                    }`}
+                  >
+                    <TrendingUp size={18} className="text-emerald-500" />
+                  </div>
+                ) : (
+                  <div
+                    className={`p-2 rounded-lg ${
+                      darkMode ? "bg-gray-700" : "bg-gray-100"
+                    }`}
+                  >
+                    <Minus size={18} className="text-gray-400" />
+                  </div>
+                )}
+                <div>
+                  <p
+                    className={`text-xs font-medium ${
+                      selectedDue > 0
+                        ? "text-red-500"
+                        : selectedDue < 0
+                          ? "text-emerald-600"
+                          : darkMode
+                            ? "text-gray-400"
+                            : "text-gray-500"
+                    }`}
+                  >
+                    {selectedDue > 0
+                      ? (t as any).dueAmount || "Due Amount"
+                      : selectedDue < 0
+                        ? (t as any).advanceBalance || "Advance Balance"
+                        : (t as any).noBalance || "No Balance"}
+                  </p>
+                  <p
+                    className={`text-xl font-bold mt-0.5 ${
+                      selectedDue > 0
+                        ? "text-red-600"
+                        : selectedDue < 0
+                          ? "text-emerald-600"
+                          : darkMode
+                            ? "text-gray-400"
+                            : "text-gray-500"
+                    }`}
+                  >
+                    {selectedDue === 0
+                      ? "₹0"
+                      : selectedDue > 0
+                        ? `₹${selectedDue}`
+                        : `₹${Math.abs(selectedDue)}`}
+                  </p>
+                </div>
+              </div>
+              <div
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold ${
+                  selectedDue > 0
+                    ? darkMode
+                      ? "bg-red-800/50 text-red-300"
+                      : "bg-red-100 text-red-600"
+                    : selectedDue < 0
+                      ? darkMode
+                        ? "bg-green-800/50 text-green-300"
+                        : "bg-emerald-100 text-emerald-700"
+                      : darkMode
+                        ? "bg-gray-700 text-gray-400"
+                        : "bg-gray-100 text-gray-500"
+                }`}
+              >
+                {selectedDue > 0
+                  ? (t as any).due || "Baaki"
+                  : selectedDue < 0
+                    ? (t as any).advance || "Advance"
+                    : "—"}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Payment Method */}
         <div className={`rounded-xl border p-4 space-y-3 ${cardBg}`}>
