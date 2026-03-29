@@ -1,12 +1,15 @@
-import { Menu, Pencil } from "lucide-react";
+import { Menu, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { useApp } from "../App";
+import type { SavedTransactionFull } from "../App";
 import type { backendInterface } from "../backend";
 import type { Payment } from "../backend";
 
 type Props = {
   actor: backendInterface;
   onOpenSidebar: () => void;
+  onEditTransaction?: (txn: SavedTransactionFull) => void;
 };
 
 type ActiveTab = "parties" | "transactions" | "services";
@@ -14,6 +17,10 @@ type ActiveTab = "parties" | "transactions" | "services";
 interface SavedTxn {
   id: string;
   partyName?: string;
+  partyId?: string;
+  amount?: number;
+  discount?: number;
+  receivedAmount?: number;
   [key: string]: unknown;
 }
 
@@ -26,7 +33,15 @@ function getSavedTransactions(): SavedTxn[] {
   }
 }
 
-export default function Dashboard({ actor, onOpenSidebar }: Props) {
+function setSavedTransactions(items: SavedTxn[]) {
+  localStorage.setItem("ktp_saved_transactions", JSON.stringify(items));
+}
+
+export default function Dashboard({
+  actor,
+  onOpenSidebar,
+  onEditTransaction,
+}: Props) {
   const { t, setPage } = useApp();
   const [businessName, setBusinessName] = useState("Kisan Seva");
   const [activeTab, setActiveTab] = useState<ActiveTab>("parties");
@@ -42,33 +57,34 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
     [],
   );
 
+  const loadData = async () => {
+    try {
+      const profile = await actor.getCallerUserProfile();
+      if (profile?.businessName) setBusinessName(profile.businessName);
+      const [tod, mon, tot, parties, payments] = await Promise.all([
+        actor.getEarningsToday(),
+        actor.getEarningsThisMonth(),
+        actor.getTotalEarnings(),
+        actor.getPartiesWithPendingCredit(),
+        actor.getAllPayments(),
+      ]);
+      setTodayEarnings(tod);
+      setMonthEarnings(mon);
+      setTotalEarnings(tot);
+      setNetProfit(mon);
+      setPendingParties(parties);
+      const sorted = [...payments].sort(
+        (a, b) => Number(b.date) - Number(a.date),
+      );
+      setAllPayments(sorted);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: actor is stable
   useEffect(() => {
-    const load = async () => {
-      try {
-        const profile = await actor.getCallerUserProfile();
-        if (profile?.businessName) setBusinessName(profile.businessName);
-        const [tod, mon, tot, parties, payments] = await Promise.all([
-          actor.getEarningsToday(),
-          actor.getEarningsThisMonth(),
-          actor.getTotalEarnings(),
-          actor.getPartiesWithPendingCredit(),
-          actor.getAllPayments(),
-        ]);
-        setTodayEarnings(tod);
-        setMonthEarnings(mon);
-        setTotalEarnings(tot);
-        setNetProfit(mon);
-        setPendingParties(parties);
-        const sorted = [...payments].sort(
-          (a, b) => Number(b.date) - Number(a.date),
-        );
-        setAllPayments(sorted);
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    load();
+    loadData();
   }, [actor]);
 
   useEffect(() => {
@@ -85,7 +101,9 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
   // Read directly from localStorage — no effect needed
   const getPartyNameForPayment = (pay: Payment): string => {
     const key = `#TXN-${pay.id.toString().padStart(4, "0")}`;
-    return getSavedTransactions().find((s) => s.id === key)?.partyName || "";
+    return (
+      getSavedTransactions().find((s) => s.id === key)?.partyName || "Cash"
+    );
   };
 
   const handlePartyClick = (p: {
@@ -95,6 +113,45 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
   }) => {
     localStorage.setItem("ktp_open_party_id", p.id.toString());
     setPage("parties");
+  };
+
+  const handleDashboardDelete = async (pay: Payment) => {
+    if (!confirm("Delete this transaction?")) return;
+    const key = `#TXN-${pay.id.toString().padStart(4, "0")}`;
+    const all = getSavedTransactions();
+    const txnEntry = all.find((s) => s.id === key);
+
+    // Reverse party balance
+    if (txnEntry?.partyId && txnEntry.partyId !== "cash_party") {
+      const oldBalance = Math.max(
+        0,
+        (txnEntry.amount || 0) -
+          (txnEntry.discount || 0) -
+          (txnEntry.receivedAmount || 0),
+      );
+      if (oldBalance > 0) {
+        const udhar = JSON.parse(
+          localStorage.getItem("ktp_party_udhar") || "{}",
+        );
+        udhar[txnEntry.partyId] = Math.max(
+          0,
+          (udhar[txnEntry.partyId] || 0) - oldBalance,
+        );
+        localStorage.setItem("ktp_party_udhar", JSON.stringify(udhar));
+      }
+    }
+
+    const updated = all.filter((s) => s.id !== key);
+    setSavedTransactions(updated);
+
+    try {
+      await (actor as any).deletePayment(pay.id);
+    } catch {
+      // ignore
+    }
+
+    toast.success(t.deletedMsg || "Deleted");
+    await loadData();
   };
 
   const stats = [
@@ -220,25 +277,57 @@ export default function Dashboard({ actor, onOpenSidebar }: Props) {
                 return (
                   <div
                     key={pay.id.toString()}
-                    className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-xl px-4 py-3 border border-gray-100 dark:border-gray-700"
+                    className="bg-gray-50 dark:bg-gray-800 rounded-xl px-4 py-3 border border-gray-100 dark:border-gray-700"
                     data-ocid={`dashboard.transactions.item.${i + 1}`}
                   >
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-green-700 font-mono bg-green-50 dark:bg-green-900/30 px-2 py-0.5 rounded-full text-xs w-fit">
-                        #TXN-{pay.id.toString().padStart(4, "0")}
-                      </span>
-                      {partyName ? (
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-green-700 font-mono bg-green-50 dark:bg-green-900/30 px-2 py-0.5 rounded-full text-xs w-fit">
+                          #TXN-{pay.id.toString().padStart(4, "0")}
+                        </span>
                         <span className="text-gray-700 dark:text-gray-300 text-xs font-semibold">
                           {partyName}
                         </span>
-                      ) : null}
-                      <span className="text-gray-400 dark:text-gray-500 text-xs">
-                        {dateStr}
-                      </span>
+                        <span className="text-gray-400 dark:text-gray-500 text-xs">
+                          {dateStr}
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="font-bold text-gray-800 dark:text-gray-200 text-sm">
+                          ₹{pay.amount.toString()}
+                        </span>
+                        <div className="flex gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const key = `#TXN-${pay.id.toString().padStart(4, "0")}`;
+                              const txn = getSavedTransactions().find(
+                                (s) => s.id === key,
+                              );
+                              if (txn && onEditTransaction) {
+                                onEditTransaction(
+                                  txn as unknown as SavedTransactionFull,
+                                );
+                              }
+                            }}
+                            className="p-1 text-blue-500 rounded border border-blue-200 hover:bg-blue-50"
+                            title="Edit"
+                            data-ocid={`dashboard.transactions.edit_button.${i + 1}`}
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDashboardDelete(pay)}
+                            className="p-1 text-red-500 rounded border border-red-200 hover:bg-red-50"
+                            title="Delete"
+                            data-ocid={`dashboard.transactions.delete_button.${i + 1}`}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                    <span className="font-bold text-gray-800 dark:text-gray-200 text-sm">
-                      ₹{pay.amount.toString()}
-                    </span>
                   </div>
                 );
               })}

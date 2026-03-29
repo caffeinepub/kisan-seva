@@ -53,13 +53,6 @@ const emptyForm: SimpleForm = {
   notes: "",
 };
 
-function getBkgNumber(id: bigint): string {
-  const stored = localStorage.getItem(`ktp_bkg_num_${id.toString()}`);
-  return stored
-    ? `#BKG-${stored.padStart(4, "0")}`
-    : `#BKG-${id.toString().padStart(4, "0")}`;
-}
-
 export default function BookingsPage({
   actor,
   onOpenSidebar,
@@ -422,11 +415,6 @@ export default function BookingsPage({
           >
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-xs font-mono text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
-                    {getBkgNumber(b.id)}
-                  </span>
-                </div>
                 <div className="font-semibold text-gray-900 dark:text-gray-100">
                   {getPartyName(b.partyId)}
                 </div>

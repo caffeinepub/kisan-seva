@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import {
   type Booking,
   BookingStatus,
-  PaymentMethod,
+  type PaymentMethod,
   UserRole,
   type backendInterface,
 } from "./backend";
@@ -28,6 +28,7 @@ import PinLockScreen from "./pages/PinLockScreen";
 import ReportPage from "./pages/ReportPage";
 import ServicesPage from "./pages/ServicesPage";
 import SettingsPage from "./pages/SettingsPage";
+import SplashScreen from "./pages/SplashScreen";
 import TractorsPage from "./pages/TractorsPage";
 import TransactionsPage from "./pages/TransactionsPage";
 
@@ -76,6 +77,30 @@ type BookingPrefill = {
   bookingRef?: string;
 } | null;
 
+export interface SavedTransactionFull {
+  id: string;
+  date: string;
+  time: string;
+  partyId: string;
+  partyName: string;
+  partyMobile: string;
+  partyAddress?: string;
+  workType: string;
+  hours: number;
+  minutes: number;
+  rate: number;
+  amount: number;
+  discount: number;
+  receivedAmount: number;
+  paymentMethod: PaymentMethod;
+  splitCash: number;
+  splitUpi: number;
+  txType?: string;
+  driverId?: string;
+  tractorId?: string;
+  tractorName?: string;
+}
+
 export default function App() {
   const {
     isLoggedIn,
@@ -98,8 +123,13 @@ export default function App() {
   const [pageHistory, setPageHistory] = useState<Page[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [bookingPrefill, setBookingPrefill] = useState<BookingPrefill>(null);
+  const [editTransaction, setEditTransaction] =
+    useState<SavedTransactionFull | null>(null);
   const [darkMode, setDarkModeState] = useState<boolean>(() => {
     return localStorage.getItem("ktp_dark") === "true";
+  });
+  const [showSplash, setShowSplash] = useState(() => {
+    return !sessionStorage.getItem("ktp_splash_shown");
   });
 
   const setLang = (l: Lang) => {
@@ -164,6 +194,19 @@ export default function App() {
     setDarkMode,
   };
 
+  if (showSplash) {
+    return (
+      <AppContext.Provider value={contextValue}>
+        <SplashScreen
+          onDone={() => {
+            sessionStorage.setItem("ktp_splash_shown", "1");
+            setShowSplash(false);
+          }}
+        />
+      </AppContext.Provider>
+    );
+  }
+
   if (!isLoggedIn && !isGuest) {
     return (
       <AppContext.Provider value={contextValue}>
@@ -218,6 +261,12 @@ export default function App() {
     } catch (_e) {
       // proceed with navigation even if update fails
     }
+    // Auto-delete completed booking
+    try {
+      await (actor as any).deleteBooking(b.id).catch(() => {});
+    } catch {
+      // ignore
+    }
     // Build BKG reference from stored number
     const storedNum = localStorage.getItem(`ktp_bkg_num_${b.id.toString()}`);
     const bkgRef = storedNum
@@ -232,6 +281,11 @@ export default function App() {
     navigateTo("transactions");
   };
 
+  const handleEditTransaction = (txn: SavedTransactionFull) => {
+    setEditTransaction(txn);
+    navigateTo("transactions");
+  };
+
   const renderPage = () => {
     if (!actor && !isGuest)
       return (
@@ -240,7 +294,11 @@ export default function App() {
     switch (page) {
       case "home":
         return (
-          <Dashboard actor={actor} onOpenSidebar={() => setSidebarOpen(true)} />
+          <Dashboard
+            actor={actor}
+            onOpenSidebar={() => setSidebarOpen(true)}
+            onEditTransaction={handleEditTransaction}
+          />
         );
       case "bookings":
         return (
@@ -266,6 +324,8 @@ export default function App() {
             onOpenSidebar={() => setSidebarOpen(true)}
             prefill={bookingPrefill}
             onClearPrefill={() => setBookingPrefill(null)}
+            editTransaction={editTransaction}
+            onClearEdit={() => setEditTransaction(null)}
           />
         );
       case "report":
@@ -321,6 +381,7 @@ export default function App() {
           <AllTransactionsPage
             actor={actor}
             onOpenSidebar={() => setSidebarOpen(true)}
+            onEditTransaction={handleEditTransaction}
           />
         );
       case "cashFlow":

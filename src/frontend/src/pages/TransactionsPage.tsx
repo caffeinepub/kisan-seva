@@ -19,6 +19,7 @@ import { ArrowLeft, Camera, Menu, Plus, Share2, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useApp } from "../App";
+import type { SavedTransactionFull } from "../App";
 import {
   BookingStatus,
   type Driver,
@@ -45,6 +46,8 @@ type Props = {
     bookingRef?: string;
   } | null;
   onClearPrefill?: () => void;
+  editTransaction?: SavedTransactionFull | null;
+  onClearEdit?: () => void;
 };
 
 type TransactionType = "cash" | "credit";
@@ -460,6 +463,8 @@ export default function TransactionsPage({
   onOpenSidebar,
   prefill,
   onClearPrefill,
+  editTransaction,
+  onClearEdit,
 }: Props) {
   const { t, goBack } = useApp();
   const [parties, setParties] = useState<Party[]>([]);
@@ -467,6 +472,7 @@ export default function TransactionsPage({
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [saving, setSaving] = useState(false);
   const [savedOnce, setSavedOnce] = useState(false);
+  const [editingTxId, setEditingTxId] = useState<string | null>(null);
   const [showVoiceConfirm, setShowVoiceConfirm] = useState(false);
   const [voiceParsed, setVoiceParsed] = useState<
     import("../lib/voiceParser").ParsedVoiceData | null
@@ -574,6 +580,38 @@ export default function TransactionsPage({
     }
   }, [prefill, onClearPrefill]);
 
+  // Pre-fill form from editTransaction
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional
+  useEffect(() => {
+    if (!editTransaction) return;
+    // Set ref synchronously so txNumber auto-generate effect skips
+    txNumberGeneratedRef.current = true;
+    setEditingTxId(editTransaction.id);
+    setTxNumber(editTransaction.id);
+    const txTypeVal = (editTransaction.txType as TransactionType) || "cash";
+    setTxType(txTypeVal);
+    setWorkType(editTransaction.workType);
+    setHours(editTransaction.hours);
+    setMinutes(editTransaction.minutes);
+    setAmount(String(editTransaction.amount));
+    setDiscount(String(editTransaction.discount || 0));
+    setReceivedAmount(String(editTransaction.receivedAmount || 0));
+    setPaymentMethod(editTransaction.paymentMethod);
+    setSplitCash(String(editTransaction.splitCash || 0));
+    setSplitUpi(String(editTransaction.splitUpi || 0));
+    setDate(editTransaction.date);
+    setTime(editTransaction.time);
+    setTractorId(editTransaction.tractorId || "");
+    setDriverId(editTransaction.driverId || "");
+    setPartyMobile(editTransaction.partyMobile || "");
+    setSavedOnce(false);
+    // Set partyId last; for cash type, the txType effect will set CASH_PARTY_ID
+    if (txTypeVal !== "cash") {
+      setPartyId(editTransaction.partyId);
+    }
+    onClearEdit?.();
+  }, [editTransaction]);
+
   // Voice input: parse transcript and apply to form
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentional
   useEffect(() => {
@@ -664,6 +702,134 @@ export default function TransactionsPage({
     }
     setSaving(true);
     try {
+      const totalAmt = Number(amount);
+      const receivedAmt = Number(receivedAmount) || 0;
+      const netAmt = Math.max(0, totalAmt - (Number(discount) || 0));
+      const selectedParty = parties.find((p) => p.id.toString() === partyId);
+
+      // --- EDIT MODE ---
+      if (editingTxId) {
+        const allTxns: any[] = JSON.parse(
+          localStorage.getItem("ktp_saved_transactions") || "[]",
+        );
+        const oldEntry = allTxns.find((s: any) => s.id === editingTxId);
+        // Reverse old party balance
+        if (oldEntry?.partyId && oldEntry.partyId !== "cash_party") {
+          const oldBalance = Math.max(
+            0,
+            (oldEntry.amount || 0) -
+              (oldEntry.discount || 0) -
+              (oldEntry.receivedAmount || 0),
+          );
+          if (oldBalance > 0) {
+            const udhar = JSON.parse(
+              localStorage.getItem("ktp_party_udhar") || "{}",
+            );
+            udhar[oldEntry.partyId] = Math.max(
+              0,
+              (udhar[oldEntry.partyId] || 0) - oldBalance,
+            );
+            localStorage.setItem("ktp_party_udhar", JSON.stringify(udhar));
+          }
+        }
+        // Update entry in localStorage
+        const updatedEntry = {
+          id: editingTxId,
+          date,
+          time,
+          partyId,
+          partyName: selectedParty?.name || "Cash",
+          partyMobile: partyMobile || selectedParty?.phone || "",
+          partyAddress: selectedParty?.address || "",
+          workType,
+          hours,
+          minutes,
+          rate: serviceRate,
+          amount: totalAmt,
+          discount: Number(discount) || 0,
+          receivedAmount: receivedAmt,
+          paymentMethod,
+          splitCash: Number(splitCash) || 0,
+          splitUpi: Number(splitUpi) || 0,
+          txType,
+          driverId: driverId && driverId !== "none" ? driverId : "",
+          tractorId: tractorId && tractorId !== "none" ? tractorId : "",
+          tractorName:
+            tractors.find((tr) => tr.id.toString() === tractorId)?.name || "",
+        };
+        const updatedTxns = allTxns.map((s: any) =>
+          s.id === editingTxId ? updatedEntry : s,
+        );
+        localStorage.setItem(
+          "ktp_saved_transactions",
+          JSON.stringify(updatedTxns),
+        );
+        // Apply new party balance
+        if (receivedAmt < netAmt && partyId && partyId !== CASH_PARTY_ID) {
+          const balance = netAmt - receivedAmt;
+          const existingUdhar = JSON.parse(
+            localStorage.getItem("ktp_party_udhar") || "{}",
+          );
+          existingUdhar[partyId] = (existingUdhar[partyId] || 0) + balance;
+          localStorage.setItem(
+            "ktp_party_udhar",
+            JSON.stringify(existingUdhar),
+          );
+        }
+        // Auto-save driver hours
+        if (driverId && driverId !== "none" && hours > 0) {
+          const driverAttendance = JSON.parse(
+            localStorage.getItem("ktp_driver_attendance") || "{}",
+          );
+          if (!driverAttendance[driverId]) driverAttendance[driverId] = {};
+          const existingH = driverAttendance[driverId][date]?.hours || 0;
+          const existingM = driverAttendance[driverId][date]?.minutes || 0;
+          const totalMin = existingH * 60 + existingM + hours * 60 + minutes;
+          driverAttendance[driverId][date] = {
+            hours: Math.floor(totalMin / 60),
+            minutes: totalMin % 60,
+            fromTransaction: true,
+          };
+          localStorage.setItem(
+            "ktp_driver_attendance",
+            JSON.stringify(driverAttendance),
+          );
+        }
+        toast.success("Transaction updated");
+        const businessName =
+          localStorage.getItem("ktp_business_name") || "Kisan Seva";
+        const businessMobile =
+          localStorage.getItem("ktp_business_mobile") ||
+          localStorage.getItem("ktp_current_user_mobile") ||
+          "";
+        setInvoiceData({
+          txNumber: editingTxId,
+          date,
+          time,
+          partyName: selectedParty?.name || "Cash",
+          partyMobile: partyMobile || selectedParty?.phone || "",
+          partyAddress: selectedParty?.address || "",
+          workType,
+          hours,
+          minutes,
+          rate: serviceRate,
+          amount: totalAmt,
+          discount: Number(discount) || 0,
+          receivedAmount: receivedAmt,
+          paymentMethod,
+          splitCash,
+          splitUpi,
+          businessName,
+          businessMobile,
+          partyId,
+        });
+        setShowInvoice(true);
+        setSavedOnce(true);
+        setSaving(false);
+        return;
+      }
+      // --- END EDIT MODE ---
+
       const dateTimeMs = BigInt(new Date(`${date}T${time}`).getTime());
       const amtBig = BigInt(amount || "0");
 
@@ -729,9 +895,6 @@ export default function TransactionsPage({
       );
 
       // Auto-add udhar if partial payment
-      const totalAmt = Number(amount);
-      const receivedAmt = Number(receivedAmount) || 0;
-      const netAmt = Math.max(0, totalAmt - (Number(discount) || 0));
       if (receivedAmt < netAmt && partyId && partyId !== CASH_PARTY_ID) {
         const balance = netAmt - receivedAmt;
         const existingUdhar = JSON.parse(
@@ -742,7 +905,6 @@ export default function TransactionsPage({
       }
 
       // Get party info for invoice
-      const selectedParty = parties.find((p) => p.id.toString() === partyId);
       const businessName =
         localStorage.getItem("ktp_business_name") || "Kisan Seva";
       const businessMobile =
@@ -861,6 +1023,26 @@ export default function TransactionsPage({
         businessMobile,
         partyId,
       });
+      // Auto-save driver hours to attendance
+      if (driverId && driverId !== "none" && hours > 0) {
+        const driverAttendance = JSON.parse(
+          localStorage.getItem("ktp_driver_attendance") || "{}",
+        );
+        if (!driverAttendance[driverId]) driverAttendance[driverId] = {};
+        const existingH = driverAttendance[driverId][date]?.hours || 0;
+        const existingM = driverAttendance[driverId][date]?.minutes || 0;
+        const totalMinDr = existingH * 60 + existingM + hours * 60 + minutes;
+        driverAttendance[driverId][date] = {
+          hours: Math.floor(totalMinDr / 60),
+          minutes: totalMinDr % 60,
+          fromTransaction: true,
+        };
+        localStorage.setItem(
+          "ktp_driver_attendance",
+          JSON.stringify(driverAttendance),
+        );
+      }
+
       setShowInvoice(true);
       setSavedOnce(true);
     } catch {
@@ -917,7 +1099,7 @@ export default function TransactionsPage({
           <Menu className="w-5 h-5 text-gray-700 dark:text-gray-300" />
         </button>
         <h1 className="font-bold text-base text-gray-900 dark:text-gray-100">
-          {t.newTransaction}
+          {editingTxId ? "Edit Transaction" : t.newTransaction}
         </h1>
         <div className="w-8" />
       </div>

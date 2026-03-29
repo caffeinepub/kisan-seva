@@ -7,16 +7,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ArrowLeft, Menu, ReceiptText, Trash2 } from "lucide-react";
+import { ArrowLeft, Menu, Pencil, ReceiptText, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useApp } from "../App";
+import type { SavedTransactionFull } from "../App";
 import type { backendInterface } from "../backend";
 import { type Payment, PaymentMethod } from "../backend";
 
 interface Props {
   actor: backendInterface;
   onOpenSidebar?: () => void;
+  onEditTransaction?: (txn: SavedTransactionFull) => void;
 }
 
 interface SavedTransaction {
@@ -25,6 +27,24 @@ interface SavedTransaction {
   partyId?: string;
   bookingRef?: string;
   bookingId?: string;
+  date?: string;
+  time?: string;
+  partyMobile?: string;
+  partyAddress?: string;
+  workType?: string;
+  hours?: number;
+  minutes?: number;
+  rate?: number;
+  amount?: number;
+  discount?: number;
+  receivedAmount?: number;
+  paymentMethod?: PaymentMethod;
+  splitCash?: number;
+  splitUpi?: number;
+  txType?: string;
+  driverId?: string;
+  tractorId?: string;
+  tractorName?: string;
   [key: string]: unknown;
 }
 
@@ -82,7 +102,11 @@ function getTxnKey(id: bigint): string {
   return `#TXN-${id.toString().padStart(4, "0")}`;
 }
 
-export default function AllTransactionsPage({ actor, onOpenSidebar }: Props) {
+export default function AllTransactionsPage({
+  actor,
+  onOpenSidebar,
+  onEditTransaction,
+}: Props) {
   const { t, goBack } = useApp();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [savedTxns, setSavedTxns] = useState<SavedTransaction[]>([]);
@@ -112,7 +136,7 @@ export default function AllTransactionsPage({ actor, onOpenSidebar }: Props) {
   const getPartyName = (payment: Payment): string => {
     const key = getTxnKey(payment.id);
     const saved = savedTxns.find((s) => s.id === key);
-    return saved?.partyName || "";
+    return saved?.partyName || "Cash";
   };
 
   const handleDeleteConfirm = async () => {
@@ -122,6 +146,26 @@ export default function AllTransactionsPage({ actor, onOpenSidebar }: Props) {
       const key = getTxnKey(deleteTarget.id);
       const all = getSavedTransactions();
       const txnEntry = all.find((s) => s.id === key);
+
+      // Reverse party balance on delete
+      if (txnEntry?.partyId && txnEntry.partyId !== "cash_party") {
+        const oldBalance = Math.max(
+          0,
+          ((txnEntry.amount as number) || 0) -
+            ((txnEntry.discount as number) || 0) -
+            ((txnEntry.receivedAmount as number) || 0),
+        );
+        if (oldBalance > 0) {
+          const udhar = JSON.parse(
+            localStorage.getItem("ktp_party_udhar") || "{}",
+          );
+          udhar[txnEntry.partyId] = Math.max(
+            0,
+            (udhar[txnEntry.partyId] || 0) - oldBalance,
+          );
+          localStorage.setItem("ktp_party_udhar", JSON.stringify(udhar));
+        }
+      }
 
       // Cascade: delete connected booking from localStorage
       if (txnEntry) {
@@ -251,11 +295,9 @@ export default function AllTransactionsPage({ actor, onOpenSidebar }: Props) {
                         {methodLabel(payment.method)}
                       </span>
                     </div>
-                    {partyName ? (
-                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-0.5">
-                        {partyName}
-                      </p>
-                    ) : null}
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-0.5">
+                      {partyName}
+                    </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
                       {fmt12(payment.date)}
                     </p>
@@ -269,15 +311,34 @@ export default function AllTransactionsPage({ actor, onOpenSidebar }: Props) {
                     <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
                       ₹{payment.amount.toString()}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => setDeleteTarget(payment)}
-                      className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-colors"
-                      data-ocid={`all_transactions.delete_button.${idx + 1}`}
-                      title={t.delete || "Delete"}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const key = getTxnKey(payment.id);
+                          const txn = getSavedTransactions().find(
+                            (s) => s.id === key,
+                          );
+                          if (txn && onEditTransaction) {
+                            onEditTransaction(txn as SavedTransactionFull);
+                          }
+                        }}
+                        className="p-1.5 rounded-lg text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 transition-colors"
+                        data-ocid={`all_transactions.edit_button.${idx + 1}`}
+                        title="Edit"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteTarget(payment)}
+                        className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-colors"
+                        data-ocid={`all_transactions.delete_button.${idx + 1}`}
+                        title={t.delete || "Delete"}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
