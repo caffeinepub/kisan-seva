@@ -14,6 +14,7 @@ import {
   Users,
 } from "lucide-react";
 import { useState } from "react";
+import { useApp } from "../App";
 
 const ADMIN_CODE_KEY = "ktp_admin_code";
 const BLOCKED_KEY = "ktp_blocked_users";
@@ -61,6 +62,7 @@ interface Props {
 }
 
 export default function AdminPanelPage({ onExit, onDeleteUser }: Props) {
+  const { t } = useApp();
   const [tab, setTab] = useState<AdminTab>("users");
   const [blocked, setBlocked] = useState<string[]>(() => getBlockedUsers());
   const [newCode, setNewCode] = useState("");
@@ -107,7 +109,7 @@ export default function AdminPanelPage({ onExit, onDeleteUser }: Props) {
       return;
     }
     localStorage.setItem(ADMIN_CODE_KEY, newCode.trim());
-    setCodeMsg("Admin code updated successfully!");
+    setCodeMsg((t as any).savedMsg || "Admin code updated successfully!");
     setNewCode("");
     setConfirmCode("");
   };

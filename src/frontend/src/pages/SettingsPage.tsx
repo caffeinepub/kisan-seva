@@ -191,7 +191,7 @@ export default function SettingsPage({ actor }: Props) {
       setCpError("Current password is incorrect");
       return;
     }
-    setCpSuccess("Password updated successfully ✓");
+    setCpSuccess((t as any).updatedMsg || "Updated successfully ✓");
     setCpOld("");
     setCpNew("");
     setCpConfirm("");

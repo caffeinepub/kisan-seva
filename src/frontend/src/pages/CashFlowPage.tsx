@@ -155,7 +155,7 @@ export default function CashFlowPage({ actor: _actor, onOpenSidebar }: Props) {
               data-ocid="cash_flow.tab"
             >
               {f === "all"
-                ? "All"
+                ? (t as any).allCategories || "All"
                 : f === "in"
                   ? `${(t as any).cashFlowIn} (+)`
                   : `${(t as any).cashFlowOut} (−)`}
@@ -176,7 +176,11 @@ export default function CashFlowPage({ actor: _actor, onOpenSidebar }: Props) {
               }`}
               data-ocid="cash_flow.tab"
             >
-              {m === "all" ? "All" : m === "cash" ? "💵 Cash" : "📱 UPI"}
+              {m === "all"
+                ? (t as any).allCategories || "All"
+                : m === "cash"
+                  ? "💵 Cash"
+                  : "📱 UPI"}
             </button>
           ))}
         </div>

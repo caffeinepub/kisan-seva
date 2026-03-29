@@ -55,35 +55,15 @@ export default function LoginPage({
   getSecurityQuestion,
   onAdminAccess,
 }: Props) {
-  const { t, lang } = useApp();
+  const { t } = useApp();
 
-  const SECURITY_QUESTIONS_GU = [
-    "\u0AA4\u0AAE\u0ABE\u0AB0\u0AC0 \u0AAE\u0ABE\u0AA4\u0ABE\u0AA8\u0AC1\u0A82 \u0AA8\u0ABE\u0AAE?",
-    "\u0AA4\u0AAE\u0ABE\u0AB0\u0ABE \u0AAA\u0ACD\u0AB0\u0ABE\u0AA3\u0AC0\u0AA8\u0AC1\u0A82 \u0AA8\u0ABE\u0AAE?",
-    "\u0AA4\u0AAE\u0ABE\u0AB0\u0AC1\u0A82 \u0A9C\u0AA8\u0ACD\u0AAE \u0AB6\u0AC0\u0AB9\u0AB0?",
-    "\u0AA4\u0AAE\u0ABE\u0AB0\u0ACB \u0AAA\u0ACD\u0AB0\u0ABF\u0AAF \u0AB0\u0A82\u0A97?",
-    "\u0AA4\u0AAE\u0ABE\u0AB0\u0ABE \u0AAA\u0ABF\u0AA4\u0ABE\u0AA8\u0AC1\u0A82 \u0AA8\u0ABE\u0AAE?",
-  ];
-  const SECURITY_QUESTIONS_HI = [
-    "\u0906\u092A\u0915\u0940 \u092E\u093E\u0901 \u0915\u093E \u0928\u093E\u092E \u0915\u094D\u092F\u093E \u0939\u0948?",
-    "\u0906\u092A\u0915\u0947 \u092A\u093E\u0932\u0924\u0942 \u091C\u093E\u0928\u0935\u0930 \u0915\u093E \u0928\u093E\u092E?",
-    "\u0906\u092A\u0915\u093E \u091C\u0928\u094D\u092E \u0936\u0939\u0930 \u0915\u094C\u0928 \u0938\u093E \u0939\u0948?",
-    "\u0906\u092A\u0915\u093E \u092A\u0938\u0902\u0926\u0940\u0926\u093E \u0930\u0902\u0917?",
-    "\u0906\u092A\u0915\u0947 \u092A\u093F\u0924\u093E \u0915\u093E \u0928\u093E\u092E?",
-  ];
-  const SECURITY_QUESTIONS_EN = [
+  const SECURITY_QUESTIONS = (t as any).securityQuestions || [
     "What is your mother's name?",
     "What is your pet's name?",
     "What city were you born in?",
     "What is your favorite color?",
     "What is your father's name?",
   ];
-  const SECURITY_QUESTIONS =
-    lang === "gu"
-      ? SECURITY_QUESTIONS_GU
-      : lang === "hi"
-        ? SECURITY_QUESTIONS_HI
-        : SECURITY_QUESTIONS_EN;
 
   const [tab, setTab] = useState<Tab>("login");
 
