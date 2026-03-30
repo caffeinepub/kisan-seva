@@ -1,4 +1,10 @@
-import { Menu, Pencil, Trash2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Menu, Pencil, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useApp } from "../App";
@@ -18,9 +24,27 @@ interface SavedTxn {
   id: string;
   partyName?: string;
   partyId?: string;
+  partyMobile?: string;
+  partyAddress?: string;
+  workType?: string;
+  hours?: number;
+  minutes?: number;
+  rate?: number;
   amount?: number;
   discount?: number;
   receivedAmount?: number;
+  paymentMethod?: string | { cash?: null; upi?: null; split?: null };
+  splitCash?: number;
+  splitUpi?: number;
+  driverId?: string;
+  driverName?: string;
+  tractorId?: string;
+  tractorName?: string;
+  date?: string;
+  time?: string;
+  notes?: string;
+  txType?: string;
+  bookingRef?: string;
   [key: string]: unknown;
 }
 
@@ -35,6 +59,31 @@ function getSavedTransactions(): SavedTxn[] {
 
 function setSavedTransactions(items: SavedTxn[]) {
   localStorage.setItem("ktp_saved_transactions", JSON.stringify(items));
+}
+
+function getPaymentMethodLabel(pm: unknown): string {
+  if (!pm) return "Cash";
+  if (typeof pm === "string") {
+    if (pm === "cash") return "Cash";
+    if (pm === "upi") return "UPI";
+    if (pm === "split") return "Split";
+    return pm;
+  }
+  if (typeof pm === "object" && pm !== null) {
+    if ("cash" in pm) return "Cash";
+    if ("upi" in pm) return "UPI";
+    if ("split" in pm) return "Split";
+  }
+  return "Cash";
+}
+
+function getPaymentBadgeClass(pm: unknown): string {
+  const label = getPaymentMethodLabel(pm);
+  if (label === "UPI")
+    return "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300";
+  if (label === "Split")
+    return "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300";
+  return "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300";
 }
 
 export default function Dashboard({
@@ -56,6 +105,7 @@ export default function Dashboard({
   const [services, setServices] = useState<{ name: string; rate: number }[]>(
     [],
   );
+  const [detailTxn, setDetailTxn] = useState<SavedTxn | null>(null);
 
   const loadData = async () => {
     try {
@@ -98,12 +148,13 @@ export default function Dashboard({
     }
   }, []);
 
-  // Read directly from localStorage — no effect needed
-  const getPartyNameForPayment = (pay: Payment): string => {
+  const getFullTxnForPayment = (pay: Payment): SavedTxn | null => {
     const key = `#TXN-${pay.id.toString().padStart(4, "0")}`;
-    return (
-      getSavedTransactions().find((s) => s.id === key)?.partyName || "Cash"
-    );
+    return getSavedTransactions().find((s) => s.id === key) || null;
+  };
+
+  const getPartyNameForPayment = (pay: Payment): string => {
+    return getFullTxnForPayment(pay)?.partyName || "Cash";
   };
 
   const handlePartyClick = (p: {
@@ -141,8 +192,42 @@ export default function Dashboard({
       }
     }
 
-    const updated = all.filter((s) => s.id !== key);
-    setSavedTransactions(updated);
+    // Cascade: delete connected booking
+    if (txnEntry) {
+      const bookingRef = txnEntry.bookingRef || key.replace("TXN", "BKG");
+      const afterRemove = all.filter(
+        (s) => s.id !== key && s.id !== bookingRef,
+      );
+      setSavedTransactions(afterRemove);
+      // Clean up bkg_num keys
+      const bkgNumMatch = (bookingRef as string)?.match(/#BKG-(\d+)/);
+      if (bkgNumMatch) {
+        for (let i = 0; i < localStorage.length; i++) {
+          const lsKey = localStorage.key(i);
+          if (
+            lsKey?.startsWith("ktp_bkg_num_") &&
+            localStorage.getItem(lsKey) === bkgNumMatch[1]
+          ) {
+            localStorage.removeItem(lsKey);
+            break;
+          }
+        }
+      }
+    } else {
+      setSavedTransactions(all.filter((s) => s.id !== key));
+    }
+
+    // Remove cash flow entries for this txn
+    try {
+      const cfRaw = localStorage.getItem("ktp_cash_flow_entries");
+      if (cfRaw) {
+        const cf = JSON.parse(cfRaw);
+        const filtered = cf.filter((e: any) => e.txnId !== key);
+        localStorage.setItem("ktp_cash_flow_entries", JSON.stringify(filtered));
+      }
+    } catch {
+      // ignore
+    }
 
     try {
       await (actor as any).deletePayment(pay.id);
@@ -152,6 +237,21 @@ export default function Dashboard({
 
     toast.success(t.deletedMsg || "Deleted");
     await loadData();
+  };
+
+  const handleTxnCardClick = (pay: Payment) => {
+    const txn = getFullTxnForPayment(pay);
+    if (txn) {
+      setDetailTxn(txn);
+    } else {
+      // Minimal detail from Payment object
+      setDetailTxn({
+        id: `#TXN-${pay.id.toString().padStart(4, "0")}`,
+        partyName: "Cash",
+        amount: Number(pay.amount),
+        date: new Date(Number(pay.date) / 1_000_000).toISOString().slice(0, 10),
+      });
+    }
   };
 
   const stats = [
@@ -274,59 +374,83 @@ export default function Dashboard({
                   month: "short",
                 });
                 const partyName = getPartyNameForPayment(pay);
+                const fullTxn = getFullTxnForPayment(pay);
+                const pmLabel = getPaymentMethodLabel(fullTxn?.paymentMethod);
+                const pmBadge = getPaymentBadgeClass(fullTxn?.paymentMethod);
+                const txnKey = `#TXN-${pay.id.toString().padStart(4, "0")}`;
                 return (
                   <div
                     key={pay.id.toString()}
-                    className="bg-gray-50 dark:bg-gray-800 rounded-xl px-4 py-3 border border-gray-100 dark:border-gray-700"
+                    className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden"
                     data-ocid={`dashboard.transactions.item.${i + 1}`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                    {/* Clickable main area */}
+                    <button
+                      type="button"
+                      onClick={() => handleTxnCardClick(pay)}
+                      className="w-full text-left px-4 pt-3 pb-2 flex items-start justify-between gap-2"
+                    >
+                      <div className="flex flex-col gap-1 flex-1 min-w-0">
+                        <span className="text-base font-bold text-gray-900 dark:text-gray-100 truncate">
                           {partyName}
                         </span>
                         <span className="text-green-700 font-mono bg-green-50 dark:bg-green-900/30 px-2 py-0.5 rounded-full text-xs w-fit">
-                          #TXN-{pay.id.toString().padStart(4, "0")}
+                          {txnKey}
+                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded-full font-semibold ${pmBadge}`}
+                          >
+                            {pmLabel}
+                          </span>
+                          {fullTxn?.workType && (
+                            <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
+                              {fullTxn.workType}
+                            </span>
+                          )}
+                          {(fullTxn?.hours || fullTxn?.minutes) && (
+                            <span className="text-xs text-gray-400 dark:text-gray-500">
+                              {fullTxn.hours || 0}h {fullTxn.minutes || 0}m
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-0.5 shrink-0">
+                        <span className="font-bold text-gray-800 dark:text-gray-200 text-base">
+                          ₹{pay.amount.toString()}
                         </span>
                         <span className="text-gray-400 dark:text-gray-500 text-xs">
                           {dateStr}
                         </span>
                       </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="font-bold text-gray-800 dark:text-gray-200 text-sm">
-                          ₹{pay.amount.toString()}
-                        </span>
-                        <div className="flex gap-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const key = `#TXN-${pay.id.toString().padStart(4, "0")}`;
-                              const txn = getSavedTransactions().find(
-                                (s) => s.id === key,
-                              );
-                              if (txn && onEditTransaction) {
-                                onEditTransaction(
-                                  txn as unknown as SavedTransactionFull,
-                                );
-                              }
-                            }}
-                            className="p-1 text-blue-500 rounded border border-blue-200 hover:bg-blue-50"
-                            title="Edit"
-                            data-ocid={`dashboard.transactions.edit_button.${i + 1}`}
-                          >
-                            <Pencil className="w-3 h-3" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDashboardDelete(pay)}
-                            className="p-1 text-red-500 rounded border border-red-200 hover:bg-red-50"
-                            title="Delete"
-                            data-ocid={`dashboard.transactions.delete_button.${i + 1}`}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        </div>
-                      </div>
+                    </button>
+                    {/* Actions row */}
+                    <div className="flex items-center justify-end gap-1 px-3 pb-2 pt-0 border-t border-gray-50 dark:border-gray-700">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const txn = getSavedTransactions().find(
+                            (s) => s.id === txnKey,
+                          );
+                          if (txn && onEditTransaction) {
+                            onEditTransaction(
+                              txn as unknown as SavedTransactionFull,
+                            );
+                          }
+                        }}
+                        className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 px-2 py-1 rounded transition-colors"
+                        data-ocid={`dashboard.transactions.edit_button.${i + 1}`}
+                      >
+                        <Pencil className="w-3 h-3" /> {t.edit || "Edit"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDashboardDelete(pay)}
+                        className="flex items-center gap-1 text-xs text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 px-2 py-1 rounded transition-colors"
+                        data-ocid={`dashboard.transactions.delete_button.${i + 1}`}
+                      >
+                        <Trash2 className="w-3 h-3" /> {t.delete || "Delete"}
+                      </button>
                     </div>
                   </div>
                 );
@@ -440,6 +564,140 @@ export default function Dashboard({
 
       {/* Tab Content */}
       <div className="flex-1">{renderTabContent()}</div>
+
+      {/* Transaction Detail Modal */}
+      <Dialog
+        open={!!detailTxn}
+        onOpenChange={(open) => !open && setDetailTxn(null)}
+      >
+        <DialogContent
+          className="max-w-[90vw] w-full max-h-[80vh] overflow-y-auto rounded-2xl p-0"
+          data-ocid="dashboard.transactions.dialog"
+        >
+          <DialogHeader className="px-5 pt-5 pb-3 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-base font-bold text-gray-900 dark:text-gray-100">
+                {detailTxn?.id || "Transaction Details"}
+              </DialogTitle>
+              <button
+                type="button"
+                onClick={() => setDetailTxn(null)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                data-ocid="dashboard.transactions.close_button"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </DialogHeader>
+          {detailTxn && (
+            <div className="px-5 py-4 flex flex-col gap-3">
+              <DetailRow label="Party Name" value={detailTxn.partyName} />
+              {detailTxn.partyMobile && (
+                <DetailRow label="Mobile" value={detailTxn.partyMobile} />
+              )}
+              {detailTxn.partyAddress && (
+                <DetailRow label="Address" value={detailTxn.partyAddress} />
+              )}
+              {detailTxn.workType && (
+                <DetailRow label="Service / Work" value={detailTxn.workType} />
+              )}
+              {(detailTxn.hours !== undefined ||
+                detailTxn.minutes !== undefined) && (
+                <DetailRow
+                  label="Duration"
+                  value={`${detailTxn.hours || 0}h ${detailTxn.minutes || 0}m`}
+                />
+              )}
+              {detailTxn.rate !== undefined && (
+                <DetailRow label="Rate" value={`₹${detailTxn.rate}/hr`} />
+              )}
+              {detailTxn.amount !== undefined && (
+                <DetailRow
+                  label="Total Amount"
+                  value={`₹${detailTxn.amount}`}
+                  highlight
+                />
+              )}
+              {detailTxn.discount !== undefined && detailTxn.discount > 0 && (
+                <DetailRow label="Discount" value={`₹${detailTxn.discount}`} />
+              )}
+              {detailTxn.receivedAmount !== undefined && (
+                <DetailRow
+                  label="Received"
+                  value={`₹${detailTxn.receivedAmount}`}
+                />
+              )}
+              {detailTxn.amount !== undefined &&
+                detailTxn.receivedAmount !== undefined && (
+                  <DetailRow
+                    label="Balance Due"
+                    value={`₹${Math.max(0, (detailTxn.amount || 0) - (detailTxn.discount || 0) - (detailTxn.receivedAmount || 0))}`}
+                    highlight
+                  />
+                )}
+              <DetailRow
+                label="Payment Method"
+                value={getPaymentMethodLabel(detailTxn.paymentMethod)}
+              />
+              {getPaymentMethodLabel(detailTxn.paymentMethod) === "Split" && (
+                <>
+                  <DetailRow
+                    label="Cash"
+                    value={`₹${detailTxn.splitCash || 0}`}
+                  />
+                  <DetailRow
+                    label="UPI"
+                    value={`₹${detailTxn.splitUpi || 0}`}
+                  />
+                </>
+              )}
+              {detailTxn.driverName && (
+                <DetailRow label="Driver" value={detailTxn.driverName} />
+              )}
+              {detailTxn.tractorName && (
+                <DetailRow label="Tractor" value={detailTxn.tractorName} />
+              )}
+              {detailTxn.date && (
+                <DetailRow label="Date" value={detailTxn.date} />
+              )}
+              {detailTxn.time && (
+                <DetailRow label="Time" value={detailTxn.time} />
+              )}
+              {detailTxn.notes && (
+                <DetailRow label="Notes" value={detailTxn.notes as string} />
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function DetailRow({
+  label,
+  value,
+  highlight,
+}: {
+  label: string;
+  value?: string | number;
+  highlight?: boolean;
+}) {
+  if (value === undefined || value === null || value === "") return null;
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <span className="text-sm text-gray-500 dark:text-gray-400 shrink-0">
+        {label}
+      </span>
+      <span
+        className={`text-sm font-semibold text-right ${
+          highlight
+            ? "text-green-700 dark:text-green-400"
+            : "text-gray-800 dark:text-gray-200"
+        }`}
+      >
+        {String(value)}
+      </span>
     </div>
   );
 }

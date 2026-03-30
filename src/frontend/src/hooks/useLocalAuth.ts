@@ -22,7 +22,6 @@ function getAccounts(): AccountRecord[] {
     const raw = localStorage.getItem(ACCOUNTS_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    // Handle double-stringified case (backup restore bug)
     if (typeof parsed === "string") {
       return JSON.parse(parsed);
     }
@@ -189,7 +188,7 @@ export function useLocalAuth() {
     );
     if (idx === -1) return false;
     accounts.splice(idx, 1);
-    saveAccounts(accounts); // save FIRST before removing other keys
+    saveAccounts(accounts);
     localStorage.removeItem(SESSION_KEY);
     const keysToRemove = Object.keys(localStorage).filter(
       (k) =>

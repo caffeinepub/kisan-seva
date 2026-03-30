@@ -159,6 +159,18 @@ export default function BookingsPage({
       setLicenceExpired(true);
       return;
     }
+    const inactiveUsers: string[] = (() => {
+      try {
+        return JSON.parse(localStorage.getItem("ktp_inactive_users") || "[]");
+      } catch {
+        return [];
+      }
+    })();
+    if (inactiveUsers.includes(currentMobile)) {
+      toast.error("તમે inactive છો, કૃપા કરીને admin નો સંપર્ક કરો");
+      return;
+    }
+
     if (!form.partyId || !form.serviceType) {
       toast.error(t.partyServiceRequired);
       return;

@@ -11,6 +11,8 @@ import {
   LogOut,
   Shield,
   Trash2,
+  UserCheck,
+  UserX,
   Users,
 } from "lucide-react";
 import { useState } from "react";
@@ -18,6 +20,7 @@ import { useApp } from "../App";
 
 const ADMIN_CODE_KEY = "ktp_admin_code";
 const BLOCKED_KEY = "ktp_blocked_users";
+const INACTIVE_KEY = "ktp_inactive_users";
 const ACCOUNTS_KEY = "ktp_accounts";
 
 function getAdminCode(): string {
@@ -34,6 +37,18 @@ function getBlockedUsers(): string[] {
 
 function saveBlockedUsers(list: string[]) {
   localStorage.setItem(BLOCKED_KEY, JSON.stringify(list));
+}
+
+function getInactiveUsers(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(INACTIVE_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveInactiveUsers(list: string[]) {
+  localStorage.setItem(INACTIVE_KEY, JSON.stringify(list));
 }
 
 interface Account {
@@ -65,6 +80,7 @@ export default function AdminPanelPage({ onExit, onDeleteUser }: Props) {
   const { t } = useApp();
   const [tab, setTab] = useState<AdminTab>("users");
   const [blocked, setBlocked] = useState<string[]>(() => getBlockedUsers());
+  const [inactive, setInactive] = useState<string[]>(() => getInactiveUsers());
   const [newCode, setNewCode] = useState("");
   const [confirmCode, setConfirmCode] = useState("");
   const [showNew, setShowNew] = useState(false);
@@ -85,14 +101,25 @@ export default function AdminPanelPage({ onExit, onDeleteUser }: Props) {
       : [...blocked, mobile];
     setBlocked(updated);
     saveBlockedUsers(updated);
+    // If blocking, ensure not inactive at same time (separate states)
+  };
+
+  const toggleInactive = (mobile: string) => {
+    const updated = inactive.includes(mobile)
+      ? inactive.filter((m) => m !== mobile)
+      : [...inactive, mobile];
+    setInactive(updated);
+    saveInactiveUsers(updated);
   };
 
   const handleDeleteUser = (mobile: string) => {
     onDeleteUser(mobile);
-    // Remove from blocked list if present
     const updatedBlocked = blocked.filter((m) => m !== mobile);
     setBlocked(updatedBlocked);
     saveBlockedUsers(updatedBlocked);
+    const updatedInactive = inactive.filter((m) => m !== mobile);
+    setInactive(updatedInactive);
+    saveInactiveUsers(updatedInactive);
     setConfirmDeleteMobile(null);
     refreshAccounts();
   };
@@ -112,6 +139,14 @@ export default function AdminPanelPage({ onExit, onDeleteUser }: Props) {
     setCodeMsg((t as any).savedMsg || "Admin code updated successfully!");
     setNewCode("");
     setConfirmCode("");
+  };
+
+  const getStatusInfo = (mobile: string) => {
+    if (blocked.includes(mobile))
+      return { label: "BLOCKED", color: "bg-red-600 text-white" };
+    if (inactive.includes(mobile))
+      return { label: "INACTIVE", color: "bg-gray-500 text-white" };
+    return { label: "ACTIVE", color: "bg-green-700 text-white" };
   };
 
   return (
@@ -178,87 +213,120 @@ export default function AdminPanelPage({ onExit, onDeleteUser }: Props) {
             )}
             {accounts.map((acc) => {
               const isBlocked = blocked.includes(acc.mobile);
+              const isInactive = inactive.includes(acc.mobile);
+              const status = getStatusInfo(acc.mobile);
               return (
                 <div
                   key={acc.mobile}
-                  className={`rounded-xl p-4 border flex items-center justify-between ${
+                  className={`rounded-xl p-4 border ${
                     isBlocked
                       ? "bg-red-950 border-red-700"
-                      : "bg-gray-800 border-gray-700"
+                      : isInactive
+                        ? "bg-gray-900 border-gray-600"
+                        : "bg-gray-800 border-gray-700"
                   }`}
                 >
-                  <div>
-                    <p className="font-semibold text-white text-base">
-                      {acc.name}
-                    </p>
-                    <p className="text-sm text-gray-400 mt-0.5">{acc.mobile}</p>
-                    {acc.createdAt && (
-                      <p className="text-xs text-gray-600 mt-0.5">
-                        {acc.createdAt}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-white text-base truncate">
+                        {acc.name}
                       </p>
-                    )}
-                    <span
-                      className={`mt-1 inline-block text-xs font-bold px-2 py-0.5 rounded-full ${
-                        isBlocked
-                          ? "bg-red-600 text-white"
-                          : "bg-green-700 text-white"
-                      }`}
-                    >
-                      {isBlocked ? "BLOCKED" : "ACTIVE"}
-                    </span>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <button
-                      type="button"
-                      onClick={() => toggleBlock(acc.mobile)}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
-                        isBlocked
-                          ? "bg-green-700 hover:bg-green-600 text-white"
-                          : "bg-red-700 hover:bg-red-600 text-white"
-                      }`}
-                    >
-                      {isBlocked ? (
-                        <>
-                          <CheckCircle className="w-4 h-4" /> Unblock
-                        </>
-                      ) : (
-                        <>
-                          <Ban className="w-4 h-4" /> Block
-                        </>
-                      )}
-                    </button>
-                    {confirmDeleteMobile === acc.mobile ? (
-                      <div className="flex flex-col gap-1">
-                        <p className="text-xs text-red-400 text-center">
-                          Permanently delete?
+                      <p className="text-sm text-gray-400 mt-0.5">
+                        {acc.mobile}
+                      </p>
+                      {acc.createdAt && (
+                        <p className="text-xs text-gray-600 mt-0.5">
+                          {acc.createdAt}
                         </p>
-                        <div className="flex gap-1">
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteUser(acc.mobile)}
-                            className="flex-1 px-2 py-1 rounded bg-red-600 hover:bg-red-500 text-white text-xs font-bold"
-                          >
-                            Yes
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setConfirmDeleteMobile(null)}
-                            className="flex-1 px-2 py-1 rounded bg-gray-600 hover:bg-gray-500 text-white text-xs"
-                          >
-                            No
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
+                      )}
+                      <span
+                        className={`mt-1 inline-block text-xs font-bold px-2 py-0.5 rounded-full ${status.color}`}
+                      >
+                        {status.label}
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-2 shrink-0">
+                      {/* Active / Inactive toggle */}
                       <button
                         type="button"
-                        data-ocid="admin.delete_button"
-                        onClick={() => setConfirmDeleteMobile(acc.mobile)}
-                        className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold bg-gray-700 hover:bg-red-800 text-red-400 hover:text-white transition-all"
+                        onClick={() => toggleInactive(acc.mobile)}
+                        disabled={isBlocked}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                          isBlocked
+                            ? "opacity-40 cursor-not-allowed bg-gray-700 text-gray-400"
+                            : isInactive
+                              ? "bg-blue-700 hover:bg-blue-600 text-white"
+                              : "bg-yellow-700 hover:bg-yellow-600 text-white"
+                        }`}
+                        data-ocid="admin.toggle"
                       >
-                        <Trash2 className="w-4 h-4" /> Delete
+                        {isInactive ? (
+                          <>
+                            <UserCheck className="w-3 h-3" /> Activate
+                          </>
+                        ) : (
+                          <>
+                            <UserX className="w-3 h-3" /> Deactivate
+                          </>
+                        )}
                       </button>
-                    )}
+                      {/* Block / Unblock toggle */}
+                      <button
+                        type="button"
+                        onClick={() => toggleBlock(acc.mobile)}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
+                          isBlocked
+                            ? "bg-green-700 hover:bg-green-600 text-white"
+                            : "bg-red-700 hover:bg-red-600 text-white"
+                        }`}
+                        data-ocid="admin.button"
+                      >
+                        {isBlocked ? (
+                          <>
+                            <CheckCircle className="w-4 h-4" /> Unblock
+                          </>
+                        ) : (
+                          <>
+                            <Ban className="w-4 h-4" /> Block
+                          </>
+                        )}
+                      </button>
+                      {/* Delete */}
+                      {confirmDeleteMobile === acc.mobile ? (
+                        <div className="flex flex-col gap-1">
+                          <p className="text-xs text-red-400 text-center">
+                            Permanently delete?
+                          </p>
+                          <div className="flex gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteUser(acc.mobile)}
+                              className="flex-1 px-2 py-1 rounded bg-red-600 hover:bg-red-500 text-white text-xs font-bold"
+                              data-ocid="admin.confirm_button"
+                            >
+                              Yes
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setConfirmDeleteMobile(null)}
+                              className="flex-1 px-2 py-1 rounded bg-gray-600 hover:bg-gray-500 text-white text-xs"
+                              data-ocid="admin.cancel_button"
+                            >
+                              No
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          data-ocid="admin.delete_button"
+                          onClick={() => setConfirmDeleteMobile(acc.mobile)}
+                          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold bg-gray-700 hover:bg-red-800 text-red-400 hover:text-white transition-all"
+                        >
+                          <Trash2 className="w-4 h-4" /> Delete
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -274,8 +342,8 @@ export default function AdminPanelPage({ onExit, onDeleteUser }: Props) {
                 Change Admin Access Code
               </h2>
               <p className="text-xs text-gray-400 mb-4">
-                This code is entered in the mobile field on the login screen to
-                access admin panel.
+                This code is entered in the password field on the login screen
+                to access admin panel.
               </p>
 
               <div className="flex flex-col gap-3">
@@ -360,9 +428,17 @@ export default function AdminPanelPage({ onExit, onDeleteUser }: Props) {
                 </span>
               </p>
               <p className="text-sm text-gray-400">
+                Inactive users:{" "}
+                <span className="text-gray-400 font-semibold">
+                  {inactive.length}
+                </span>
+              </p>
+              <p className="text-sm text-gray-400">
                 Active users:{" "}
                 <span className="text-green-400 font-semibold">
-                  {accounts.length - blocked.length}
+                  {accounts.length -
+                    blocked.length -
+                    inactive.filter((m) => !blocked.includes(m)).length}
                 </span>
               </p>
             </div>

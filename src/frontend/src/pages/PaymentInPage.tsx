@@ -137,6 +137,18 @@ export default function PaymentInPage({ actor, onOpenSidebar }: Props) {
       setLicenceExpired(true);
       return;
     }
+    const inactiveUsers: string[] = (() => {
+      try {
+        return JSON.parse(localStorage.getItem("ktp_inactive_users") || "[]");
+      } catch {
+        return [];
+      }
+    })();
+    if (inactiveUsers.includes(currentMobile)) {
+      toast.error("તમે inactive છો, કૃપા કરીને admin નો સંપર્ક કરો");
+      return;
+    }
+
     if (!selectedParty) {
       toast.error((t as any).selectPartyFirst);
       return;

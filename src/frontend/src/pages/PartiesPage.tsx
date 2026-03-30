@@ -440,6 +440,27 @@ export default function PartiesPage({
   );
 
   const handleSave = async () => {
+    const currentMobile = (() => {
+      try {
+        return (
+          JSON.parse(localStorage.getItem("ktp_session") || "null")?.user
+            ?.mobile || ""
+        );
+      } catch {
+        return "";
+      }
+    })();
+    const inactiveUsers: string[] = (() => {
+      try {
+        return JSON.parse(localStorage.getItem("ktp_inactive_users") || "[]");
+      } catch {
+        return [];
+      }
+    })();
+    if (inactiveUsers.includes(currentMobile)) {
+      toast.error("તમે inactive છો, કૃપા કરીને admin નો સંપર્ક કરો");
+      return;
+    }
     if (!form.name.trim()) {
       toast.error(t.nameRequiredMsg);
       return;

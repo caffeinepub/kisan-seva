@@ -44,6 +44,7 @@ type Props = {
     partyName: string;
     serviceType: string;
     bookingRef?: string;
+    paymentMethod?: string;
   } | null;
   onClearPrefill?: () => void;
   editTransaction?: SavedTransactionFull | null;
@@ -577,6 +578,12 @@ export default function TransactionsPage({
       setPartyId(prefill.partyId);
       setWorkType(prefill.serviceType);
       setBookingRef(prefill.bookingRef || null);
+      if (prefill.paymentMethod) {
+        const pm = prefill.paymentMethod.toLowerCase();
+        if (pm === "upi") setPaymentMethod(PaymentMethod.upi);
+        else if (pm === "split") setPaymentMethod(PaymentMethod.split);
+        else setPaymentMethod(PaymentMethod.cash);
+      }
       onClearPrefill?.();
     }
   }, [prefill, onClearPrefill]);
@@ -717,6 +724,17 @@ export default function TransactionsPage({
     })();
     if (blockedUsers.includes(currentMobile)) {
       setLicenceExpired(true);
+      return;
+    }
+    const inactiveUsers: string[] = (() => {
+      try {
+        return JSON.parse(localStorage.getItem("ktp_inactive_users") || "[]");
+      } catch {
+        return [];
+      }
+    })();
+    if (inactiveUsers.includes(currentMobile)) {
+      toast.error("તમે inactive છો, કૃપા કરીને admin નો સંપર્ક કરો");
       return;
     }
     if (!amount) {

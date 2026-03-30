@@ -29,7 +29,6 @@ import PinLockScreen from "./pages/PinLockScreen";
 import ReportPage from "./pages/ReportPage";
 import ServicesPage from "./pages/ServicesPage";
 import SettingsPage from "./pages/SettingsPage";
-import SplashScreen from "./pages/SplashScreen";
 import TractorsPage from "./pages/TractorsPage";
 import TransactionsPage from "./pages/TransactionsPage";
 
@@ -77,6 +76,7 @@ type BookingPrefill = {
   partyName: string;
   serviceType: string;
   bookingRef?: string;
+  paymentMethod?: string;
 } | null;
 
 export interface SavedTransactionFull {
@@ -131,9 +131,6 @@ export default function App() {
     useState<SavedTransactionFull | null>(null);
   const [darkMode, setDarkModeState] = useState<boolean>(() => {
     return localStorage.getItem("ktp_dark") === "true";
-  });
-  const [showSplash, setShowSplash] = useState(() => {
-    return !sessionStorage.getItem("ktp_splash_shown");
   });
 
   const setLang = (l: Lang) => {
@@ -197,19 +194,6 @@ export default function App() {
     darkMode,
     setDarkMode,
   };
-
-  if (showSplash) {
-    return (
-      <AppContext.Provider value={contextValue}>
-        <SplashScreen
-          onDone={() => {
-            sessionStorage.setItem("ktp_splash_shown", "1");
-            setShowSplash(false);
-          }}
-        />
-      </AppContext.Provider>
-    );
-  }
 
   if (!isLoggedIn && !isGuest) {
     if (showAdminPanel) {
@@ -295,6 +279,12 @@ export default function App() {
       partyName: b.partyId.toString(),
       serviceType: b.workType,
       bookingRef: bkgRef,
+      paymentMethod:
+        (b.paymentMethod as any)?.cash !== undefined
+          ? "cash"
+          : (b.paymentMethod as any)?.upi !== undefined
+            ? "upi"
+            : "cash",
     });
     navigateTo("transactions");
   };
